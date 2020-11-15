@@ -73,6 +73,6 @@ void drop_debug_reporter(DebugReporter *debug_reporter) {
 
     trace(
         LOG_TARGET,
-        "drop debug reporter..."
+        "drop debug reporter"
     );
 }
