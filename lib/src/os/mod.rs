@@ -9,14 +9,25 @@ pub mod windows;
 #[cfg(target_os = "windows")]
 pub use windows::Window;
 
+#[derive(Debug)]
 pub struct WindowSize {
-    pub width: i32,
-    pub height: i32
+    pub width: u16,
+    pub height: u16
 }
 
+#[derive(Debug)]
 pub struct WindowPosition {
-    pub x: i32,
-    pub y: i32
+    pub x: i16,
+    pub y: i16
+}
+
+#[derive(Debug)]
+pub enum WindowState {
+    Close,
+    Show,
+    Hide,
+    SizeChanged(WindowSize),
+    PositionChanged(WindowPosition),
 }
 
 impl fmt::Display for WindowSize {
@@ -49,4 +60,8 @@ pub trait WindowMethods<Id: io::InputId> {
     fn input_handler(&self) -> &io::InputHandler<Id>;
 
     fn input_handler_mut(&mut self) -> &mut io::InputHandler<Id>;
+
+    fn handle_window_state<H>(&mut self, handler: H)
+    where
+        H: FnMut(WindowState) + 'static;
 }

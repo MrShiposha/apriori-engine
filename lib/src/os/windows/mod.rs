@@ -3,6 +3,7 @@ use {
         os::windows::ffi::{OsStrExt, OsStringExt},
         ffi::{OsStr, OsString},
         pin::Pin,
+        marker::Unpin,
     },
     winapi::{
         shared::{
@@ -42,9 +43,16 @@ mod input_handling;
 
 const WINDOW_CLASS_NAME: &'static str = "Apriori2WindowClass";
 
+pub(crate) struct WindowInternalInfo<Id: io::InputId> {
+    pub(crate) input_handler: io::InputHandler<Id>,
+    pub(crate) state_handler: Box<dyn FnMut(WindowState)>,
+}
+
+impl<Id: io::InputId> Unpin for WindowInternalInfo<Id> {}
+
 pub struct Window<Id: io::InputId> {
     hwnd: HWND,
-    handler: Pin<Box<io::InputHandler<Id>>>,
+    internal: Pin<Box<WindowInternalInfo<Id>>>,
 }
 
 impl<Id: io::InputId> Window<Id> {
@@ -97,7 +105,7 @@ impl<Id: io::InputId> Window<Id> {
         window_title.push(0);
 
         let hwnd;
-        let mut handler;
+        let mut internal;
         unsafe {
             let window_class = WNDCLASSW {
                 style: 0,
@@ -116,22 +124,33 @@ impl<Id: io::InputId> Window<Id> {
                 return Err(last_error("window class registration failure"));
             }
 
-            handler = Pin::new(Box::new(io::InputHandler::new()));
-            let handler_ptr = &mut *handler as *mut _;
+            let input_handler = io::InputHandler::new();
+            let state_handler = Box::new(|_| { /* do nothing by default */ });
+
+            internal = Pin::new(
+                Box::new(
+                    WindowInternalInfo {
+                        input_handler,
+                        state_handler,
+                    }
+                )
+            );
+
+            let internal_ptr = &mut *internal as *mut _;
 
             hwnd = CreateWindowExW(
                 0,
                 window_class_name.as_ptr(),
                 window_title.as_ptr(),
                 WS_OVERLAPPEDWINDOW,
-                position.x,
-                position.y,
-                size.width,
-                size.height,
+                position.x as i32,
+                position.y as i32,
+                size.width as i32,
+                size.height as i32,
                 0 as HWND,
                 0 as HMENU,
                 0 as HINSTANCE,
-                handler_ptr as LPVOID
+                internal_ptr as LPVOID
             );
 
             if hwnd == (0 as HWND) {
@@ -143,7 +162,7 @@ impl<Id: io::InputId> Window<Id> {
 
         let wnd = Self {
             hwnd,
-            handler,
+            internal
         };
 
         log::trace! {
@@ -201,11 +220,18 @@ impl<Id: io::InputId> WindowMethods<Id> for Window<Id> {
     }
 
     fn input_handler(&self) -> &io::InputHandler<Id> {
-        &self.handler
+        &self.internal.input_handler
     }
 
     fn input_handler_mut(&mut self) -> &mut io::InputHandler<Id> {
-        &mut self.handler
+        &mut self.internal.input_handler
+    }
+
+    fn handle_window_state<H>(&mut self, handler: H)
+    where
+        H: FnMut(WindowState) + 'static
+    {
+        self.internal.state_handler = Box::new(handler);
     }
 }
 

@@ -2,7 +2,9 @@ use {
     winapi::{
         shared::{
             minwindef::{
+                TRUE,
                 FALSE,
+                BOOL,
                 UINT,
                 USHORT,
                 DWORD,
@@ -10,6 +12,8 @@ use {
                 LPARAM,
                 LRESULT,
                 LPVOID,
+                LOWORD,
+                HIWORD,
             },
             windef::{
                 HWND,
@@ -65,7 +69,7 @@ pub unsafe extern "system" fn window_cb<Id: InputId>(
 unsafe fn window_cb_inner<Id: InputId>(
     hwnd: HWND,
     msg: UINT,
-    _wparam: WPARAM,
+    wparam: WPARAM,
     lparam: LPARAM
 ) -> Result<Option<LRESULT>> {
     if msg == WM_NCCREATE {
@@ -73,7 +77,7 @@ unsafe fn window_cb_inner<Id: InputId>(
         // https://devblogs.microsoft.com/oldnewthing/20191014-00/?p=102992
 
         let win_create  = &mut *(lparam as LPCREATESTRUCTW);
-        let input_handler = win_create.lpCreateParams as *mut InputHandler<Id>;
+        let window_internal = win_create.lpCreateParams as *mut os::windows::WindowInternalInfo<Id>;
 
         // See SetWindowLongPtrW docs
         // https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowlongptrw#return-value
@@ -84,7 +88,7 @@ unsafe fn window_cb_inner<Id: InputId>(
         let result = SetWindowLongPtrW(
             hwnd,
             GWLP_USERDATA,
-            input_handler as LONG_PTR
+            window_internal as LONG_PTR
         );
 
         let last_error = GetLastError();
@@ -105,7 +109,10 @@ unsafe fn window_cb_inner<Id: InputId>(
         return Ok(None);
     }
 
-    let input_handler = &mut *(window_long_ptr as *mut InputHandler<Id>);
+    let window_internal = &mut *(window_long_ptr as *mut os::windows::WindowInternalInfo<Id>);
+    let input_handler = &mut window_internal.input_handler;
+    let state_handler = &mut window_internal.state_handler;
+
     let mods = input_handler.aux.mods;
 
     match msg {
@@ -285,7 +292,37 @@ unsafe fn window_cb_inner<Id: InputId>(
 
             return Ok(Some(FALSE as LRESULT))
         }
+        WM_SIZE => {
+            let width = LOWORD(lparam as DWORD);
+            let height = HIWORD(lparam as DWORD);
+
+            let size = os::WindowSize {
+                width,
+                height
+            };
+
+            state_handler(os::WindowState::SizeChanged(size));
+        }
+        WM_MOVE => {
+            let x = LOWORD(lparam as DWORD) as i16;
+            let y = HIWORD(lparam as DWORD) as i16;
+
+            let position = os::WindowPosition {
+                x, y
+            };
+
+            state_handler(os::WindowState::PositionChanged(position));
+        }
+        WM_SHOWWINDOW => {
+            if wparam as BOOL == TRUE {
+                state_handler(os::WindowState::Show);
+            } else if wparam as BOOL == FALSE {
+                state_handler(os::WindowState::Hide);
+            }
+        }
         WM_DESTROY => {
+            state_handler(os::WindowState::Close);
+
             PostQuitMessage(0);
         },
         _ => {}
