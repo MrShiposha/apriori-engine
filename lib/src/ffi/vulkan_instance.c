@@ -12,7 +12,7 @@
 #include "ffi/result_fns.h"
 
 #include "ffi/util.h"
-#include "ffi/def.h"
+#include "ffi/export/def.h"
 
 #define LOG_TARGET "FFI/VulkanInstance"
 

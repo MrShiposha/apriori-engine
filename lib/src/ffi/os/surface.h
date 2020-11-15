@@ -3,8 +3,8 @@
 
 #include <vulkan/vulkan.h>
 
-#include "ffi/def.h"
-#include "ffi/result.h"
+#include "ffi/export/def.h"
+#include "ffi/export/result.h"
 
 Result new_surface(VkInstance instance, Handle window_platform_handle);
 

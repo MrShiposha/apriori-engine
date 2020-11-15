@@ -3,8 +3,8 @@
 
 #include <vulkan/vulkan.h>
 
-#include "def.h"
-#include "result.h"
+#include "export/def.h"
+#include "export/result.h"
 
 Result new_result(Handle object, Apriori2Error error);
 

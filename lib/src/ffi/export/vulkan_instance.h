@@ -1,7 +1,7 @@
 #ifndef ___APRIORI2_EXPORT_VULKAN_INSTANCE_H___
 #define ___APRIORI2_EXPORT_VULKAN_INSTANCE_H___
 
-#include "ffi/result.h"
+#include "result.h"
 
 typedef struct VulkanInstanceFFI *VulkanInstance;
 

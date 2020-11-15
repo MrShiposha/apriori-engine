@@ -8,12 +8,12 @@
 #include "ffi/export/renderer.h"
 #include "renderer.h"
 #include "vulkan_instance.h"
-#include "ffi/def.h"
-#include "ffi/log.h"
-#include "ffi/error.h"
+#include "ffi/export/def.h"
+#include "ffi/export/error.h"
 #include "ffi/export/vulkan_instance.h"
 #include "ffi/result_fns.h"
 #include "ffi/os/surface.h"
+#include "ffi/log.h"
 
 #define LOG_TARGET "FFI/Renderer"
 

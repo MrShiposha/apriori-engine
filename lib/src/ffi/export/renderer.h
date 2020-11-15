@@ -1,7 +1,7 @@
 #ifndef ___APRIORI2_EXPORT_RENDERER_H___
 #define ___APRIORI2_EXPORT_RENDERER_H___
 
-#include "ffi/result.h"
+#include "result.h"
 #include "vulkan_instance.h"
 
 typedef struct RendererFFI *Renderer;
