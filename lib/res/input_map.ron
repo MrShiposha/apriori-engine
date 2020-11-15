@@ -1,0 +1,93 @@
+(
+    input_map: {
+        ForwardBackward: Axis([
+            (
+                axis_id: Key(W),
+                scale: 1.0,
+                mods: []
+            ),
+            (
+                axis_id: Key(S),
+                scale: -1.0,
+                mods: []
+            ),
+        ]),
+
+        LeftRight: Axis([
+            (
+                axis_id: Key(A),
+                scale: 1.0,
+                mods: []
+            ),
+            (
+                axis_id: Key(D),
+                scale: -1.0,
+                mods: []
+            ),
+        ]),
+
+        UpDown: Axis([
+            (
+                axis_id: Key(W),
+                scale: 1.0,
+                mods: [Shift]
+            ),
+            (
+                axis_id: Key(S),
+                scale: -1.0,
+                mods: [Shift]
+            ),
+        ]),
+
+        MouseX: Axis([
+            (
+                axis_id: MousePositionX,
+                scale: 1.0,
+                mods: []
+            )
+        ]),
+
+        MouseY: Axis([
+            (
+                axis_id: MousePositionY,
+                scale: 1.0,
+                mods:[]
+            )
+        ]),
+
+        MouseAction: Action([
+            (
+                key: MouseLeft,
+                mods: []
+            )
+        ]),
+
+        ShiftAction: Action([
+            (
+                key: Shift,
+                mods: []
+            )
+        ]),
+
+        OsAction: Action([
+            (
+                key: OsCtrl,
+                mods: []
+            )
+        ]),
+
+        LeftAltAction: Action([
+            (
+                key: LeftAlt,
+                mods: []
+            )
+        ]),
+
+        OsShiftAction: Action([
+            (
+                key: RightShift,
+                mods: [OsCtrl]
+            )
+        ]),
+    }
+)
