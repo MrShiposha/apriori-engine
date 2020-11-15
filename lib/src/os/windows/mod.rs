@@ -46,6 +46,7 @@ const WINDOW_CLASS_NAME: &'static str = "Apriori2WindowClass";
 pub(crate) struct WindowInternalInfo<Id: io::InputId> {
     pub(crate) input_handler: io::InputHandler<Id>,
     pub(crate) state_handler: Box<dyn FnMut(WindowState)>,
+    pub(crate) is_dropped: bool,
 }
 
 impl<Id: io::InputId> Unpin for WindowInternalInfo<Id> {}
@@ -132,6 +133,7 @@ impl<Id: io::InputId> Window<Id> {
                     WindowInternalInfo {
                         input_handler,
                         state_handler,
+                        is_dropped: false,
                     }
                 )
             );
@@ -177,11 +179,13 @@ impl<Id: io::InputId> Window<Id> {
 impl<Id: io::InputId> Drop for Window<Id> {
     fn drop(&mut self) {
         unsafe {
-            if DestroyWindow(self.hwnd) == 0 {
-                log::error! {
-                    target: Self::LOG_TARGET,
-                    "{}", last_error("window destroy")
-                };
+            if !self.internal.is_dropped {
+                if DestroyWindow(self.hwnd) == 0 {
+                    log::error! {
+                        target: Self::LOG_TARGET,
+                        "{}", last_error("window destroy")
+                    }
+                }
             }
         }
 

@@ -323,6 +323,8 @@ unsafe fn window_cb_inner<Id: InputId>(
         WM_DESTROY => {
             state_handler(os::WindowState::Close);
 
+            window_internal.is_dropped = true;
+
             PostQuitMessage(0);
         },
         _ => {}
