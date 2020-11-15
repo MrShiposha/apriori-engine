@@ -5,6 +5,7 @@ use {
     std::{
         fmt,
         sync::PoisonError,
+        ffi::CStr,
     },
     crate::{ffi, io},
 };
@@ -48,7 +49,11 @@ impl<T> From<PoisonError<T>> for Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Apriori2FFI(err) => write!(f, "FFI error code = {}", err), // TODO string description
+            Self::Apriori2FFI(err) => write!(
+                f,
+                "FFI error: {}",
+                apriori_ffi_error_to_string(*err)
+            ),
             Self::OsSpecific(err) => write!(f, "(OS) {}", err),
             Self::KeyAndModifierMatch(key) => {
                 write!(f, "{:#?} - key and modifier are same", key)
@@ -57,6 +62,16 @@ impl fmt::Display for Error {
             Self::Serialization(err) => write!(f, "{}", err),
             Self::Io(err) => write!(f, "(io error) {}", err),
         }
+    }
+}
+
+fn apriori_ffi_error_to_string(error: ffi::Apriori2Error) -> String {
+    unsafe {
+        String::from_utf8_lossy(
+            CStr::from_ptr(
+                ffi::error_to_string(error)
+            ).to_bytes()
+        ).to_string()
     }
 }
 

@@ -1,4 +1,5 @@
 use {
+    std::fmt,
     serde::{Serialize, Deserialize},
     crate::{
         core::{Result, Error},
@@ -42,5 +43,11 @@ impl Action {
 
     pub fn mods(&self) -> KeyMods {
         self.mods
+    }
+}
+
+impl fmt::Display for Action {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Action(key: {}, mods: {})", self.key, self.mods)
     }
 }

@@ -55,6 +55,35 @@ impl<Id: io::InputId> Window<Id> {
         size: WindowSize,
         position: WindowPosition
     ) -> Result<Self> {
+        log::trace! {
+            target: Self::LOG_TARGET,
+            "creating new window..."
+        };
+
+        log::trace! {
+            target: Self::LOG_TARGET,
+            "\twindow class name: \"{}\"",
+            WINDOW_CLASS_NAME
+        };
+
+        log::trace! {
+            target: Self::LOG_TARGET,
+            "\twindow title: \"{}\"",
+            title
+        };
+
+        log::trace! {
+            target: Self::LOG_TARGET,
+            "\twindow size: \"{}\"",
+            size
+        };
+
+        log::trace! {
+            target: Self::LOG_TARGET,
+            "\twindow position: \"{}\"",
+            position
+        };
+
         let mut window_class_name = OsStr::new(WINDOW_CLASS_NAME)
             .encode_wide().collect::<Vec<u16>>();
 
@@ -117,6 +146,11 @@ impl<Id: io::InputId> Window<Id> {
             handler,
         };
 
+        log::trace! {
+            target: Self::LOG_TARGET,
+            "new window created successfully"
+        };
+
         Ok(wnd)
     }
 }
@@ -127,21 +161,36 @@ impl<Id: io::InputId> Drop for Window<Id> {
             if DestroyWindow(self.hwnd) == 0 {
                 log::error! {
                     target: Self::LOG_TARGET,
-                    "{}", last_error("window destroy error")
+                    "{}", last_error("window destroy")
                 };
             }
+        }
+
+        log::trace! {
+            target: Self::LOG_TARGET,
+            "drop window"
         }
     }
 }
 
 impl<Id: io::InputId> WindowMethods<Id> for Window<Id> {
     fn show(&self) {
+        log::trace! {
+            target: Self::LOG_TARGET,
+            "show window"
+        }
+
         unsafe {
             ShowWindow(self.hwnd, SW_SHOW);
         }
     }
 
     fn hide(&self) {
+        log::trace! {
+            target: Self::LOG_TARGET,
+            "hide window"
+        }
+
         unsafe {
             ShowWindow(self.hwnd, SW_HIDE);
         }

@@ -14,6 +14,8 @@
 #include "ffi/util.h"
 #include "ffi/def.h"
 
+#define LOG_TARGET "FFI/VulkanInstance"
+
 #ifdef ___debug___
     VKAPI_ATTR VkBool32 VKAPI_CALL debug_report(
         VkDebugReportFlagsEXT flags,
@@ -31,15 +33,15 @@
         UNUSED_VAR(user_data);
 
         if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) {
-            error("VULKAN", "%s: %s, code = %d", layer_prefix, message, message_code);
+            error("Vulkan", "%s: %s, code = %d", layer_prefix, message, message_code);
         } else if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT) {
-            warn("VULKAN", "%s: %s, code = %d", layer_prefix, message, message_code);
+            warn("Vulkan", "%s: %s, code = %d", layer_prefix, message, message_code);
         } else if (flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT) {
-            info("VULKAN", "%s: %s, code = %d", layer_prefix, message, message_code);
+            info("Vulkan", "%s: %s, code = %d", layer_prefix, message, message_code);
         } else if (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT) {
-            warn("VULKAN", "%s: %s, code = %d", layer_prefix, message, message_code);
+            warn("Vulkan", "%s: %s, code = %d", layer_prefix, message, message_code);
         } else if (flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT) {
-            debug("VULKAN", "%s: %s, code = %d", layer_prefix, message, message_code);
+            debug("Vulkan", "%s: %s, code = %d", layer_prefix, message, message_code);
         }
 
         // See PFN_vkDebugReportCallbackEXT in Vulkan spec.
@@ -61,14 +63,17 @@
 
 Result check_all_layers_available(const char **layers, uint32_t num_layers) {
     Apriori2Error err = SUCCESS;
-
     VkLayerProperties *layer_props = NULL;
-
     uint32_t property_count = 0;
+
+    trace(LOG_TARGET, "checking requested validation layers");
+
     err = vkEnumerateInstanceLayerProperties(&property_count, NULL);
     if (err != VK_SUCCESS) {
         goto exit;
     }
+
+    trace(LOG_TARGET, "available validation layers count: %d", property_count);
 
     layer_props = malloc(property_count * sizeof(VkLayerProperties));
     if (layer_props == NULL) {
@@ -86,10 +91,12 @@ Result check_all_layers_available(const char **layers, uint32_t num_layers) {
                 break;
         }
 
-        // Some layer was not found
         if (j == property_count) {
+            // Some layer was not found
             err = LAYERS_NOT_FOUND;
-            error("Vulkan Instance", "Layer \"%s\" is not found", layers[i]);
+            error(LOG_TARGET, "layer \"%s\" is not found", layers[i]);
+        } else {
+            trace(LOG_TARGET, "\tvalidation layer \"%s\": OK", layers[i]);
         }
     }
 
@@ -101,12 +108,16 @@ exit:
 Result check_all_extensions_available(const char **extensions, uint32_t num_extensions) {
     Apriori2Error err = SUCCESS;
     VkExtensionProperties *extension_props = NULL;
-
     uint32_t property_count = 0;
+
+    trace(LOG_TARGET, "checking requested extensions");
+
     err = vkEnumerateInstanceExtensionProperties(NULL, &property_count, NULL);
     if (err != VK_SUCCESS) {
         goto exit;
     }
+
+    trace(LOG_TARGET, "available extension count: %d", property_count);
 
     extension_props = malloc(property_count * sizeof(VkLayerProperties));
     if (extension_props == NULL) {
@@ -124,10 +135,12 @@ Result check_all_extensions_available(const char **extensions, uint32_t num_exte
                 break;
         }
 
-        // Some extensions was not found
         if (j == property_count) {
+            // Some extensions was not found
             err = EXTENSIONS_NOT_FOUND;
-            error("Vulkan Instance", "Extension \"%s\" is not found", extensions[i]);
+            error(LOG_TARGET, "extension \"%s\" is not found", extensions[i]);
+        } else {
+            trace(LOG_TARGET, "\textension \"%s\": OK", extensions[i]);
         }
     }
 
@@ -138,6 +151,8 @@ exit:
 
 Result init_phy_devices(VulkanInstance instance) {
     Result result = { 0 };
+
+    trace(LOG_TARGET, "initializing physical devices...");
 
     result.error = vkEnumeratePhysicalDevices(
         instance->vk_handle,
@@ -162,12 +177,18 @@ Result init_phy_devices(VulkanInstance instance) {
         instance->phy_devices
     );
 
+    if (result.error == VK_SUCCESS) {
+        trace(LOG_TARGET, "physical devices successfully initialized");
+    }
+
 exit:
     return result;
 }
 
 Result new_vk_instance() {
     Result result = { 0 };
+
+    trace(LOG_TARGET, "creating new vulkan instance...");
 
     VulkanInstance instance = calloc(1, sizeof(struct VulkanInstanceFFI));
     if (instance == NULL)
@@ -178,6 +199,12 @@ Result new_vk_instance() {
         .pApplicationName = APRIORI2_APPLICATION_NAME,
         .applicationVersion = APRIORI2_VK_VERSION
     };
+
+    trace(
+        LOG_TARGET,
+        "application name: %s, application version: %d",
+        app_info.pApplicationName, app_info.applicationVersion
+    );
 
 #   ifdef ___debug___
     const char *layer_names[] = {
@@ -240,6 +267,10 @@ Result new_vk_instance() {
 #   endif // ___debug___
 
     result.object = instance;
+    if (result.error == SUCCESS) {
+        trace(LOG_TARGET, "new vulkan instance successfully created");
+    }
+
     return result;
 
 failure:
@@ -249,7 +280,7 @@ failure:
         free(instance);
 
     error(
-        "Vulkan Instance",
+        LOG_TARGET,
         "instance creation failed: error = %d",
         result.error
     );
@@ -275,4 +306,6 @@ void drop_vk_instance(VulkanInstance instance) {
 
     vkDestroyInstance(instance->vk_handle, NULL);
     free(instance);
+
+    trace(LOG_TARGET, "drop vulkan instance");
 }

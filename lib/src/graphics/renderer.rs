@@ -10,10 +10,17 @@ pub struct Renderer {
 }
 
 impl Renderer {
+    const LOG_TARGET: &'static str = "Rust/Renderer";
+
     pub fn new<Id: io::InputId>(
         vk_instance: &VulkanInstance,
         window: &os::Window<Id>,
     ) -> Result<Self> {
+        log::trace! {
+            target: Self::LOG_TARGET,
+            "creating new renderer..."
+        }
+
         let renderer;
         unsafe {
             renderer = Self {
@@ -22,6 +29,11 @@ impl Renderer {
                     window.platform_handle()
                 ).try_unwrap()?
             }
+        }
+
+        log::trace! {
+            target: Self::LOG_TARGET,
+            "new renderer successfully created"
         }
 
         Ok(renderer)

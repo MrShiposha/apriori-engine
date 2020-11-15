@@ -2,9 +2,17 @@
 #include <stdlib.h>
 
 #include "vk_debug_reporter.h"
+#include "log.h"
 #include "result_fns.h"
 
+#define LOG_TARGET "FFI/DebugReporter"
+
 Result new_debug_reporter(VulkanInstance instance, PFN_vkDebugReportCallbackEXT callback) {
+    trace(
+        LOG_TARGET,
+        "creating new debug reporter..."
+    );
+
     PFN_vkCreateDebugReportCallbackEXT
     vkCreateDebugReportCallbackEXT = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(
         vk_handle(instance),
@@ -35,6 +43,13 @@ Result new_debug_reporter(VulkanInstance instance, PFN_vkDebugReportCallbackEXT 
         &reporter->callback
     );
 
+    if (result == VK_SUCCESS) {
+        trace(
+            LOG_TARGET,
+            "new debug reporter successfully created"
+        );
+    }
+
     return new_result(reporter, result);
 }
 
@@ -55,4 +70,9 @@ void drop_debug_reporter(DebugReporter *debug_reporter) {
             NULL
         );
     }
+
+    trace(
+        LOG_TARGET,
+        "drop debug reporter..."
+    );
 }

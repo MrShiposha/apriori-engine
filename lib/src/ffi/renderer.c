@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -14,12 +15,14 @@
 #include "ffi/result_fns.h"
 #include "ffi/os/surface.h"
 
-uint32_t rate_phy_device_suitability(VkPhysicalDevice device) {
-    uint32_t score = 0;
-    VkPhysicalDeviceProperties dev_props = { 0 };
-    vkGetPhysicalDeviceProperties(device, &dev_props);
+#define LOG_TARGET "FFI/Renderer"
 
-    switch(dev_props.deviceType) {
+uint32_t rate_phy_device_suitability(VkPhysicalDeviceProperties *dev_props) {
+    assert(dev_props != NULL && "dev_props must be not NULL");
+
+    uint32_t score = 0;
+
+    switch(dev_props->deviceType) {
     case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
         score += 1000;
         break;
@@ -31,28 +34,56 @@ uint32_t rate_phy_device_suitability(VkPhysicalDevice device) {
         break;
     }
 
+    trace(
+        LOG_TARGET,
+        "\t\"%s\" physical device suitability score: %d",
+        dev_props->deviceName, score
+    );
+
     return score;
 }
 
 VkPhysicalDevice select_phy_device(VulkanInstance instance) {
     uint32_t score = 0;
     uint32_t current_score = 0;
+    VkPhysicalDeviceProperties dev_props = { 0 };
     VkPhysicalDevice winner_device = VK_NULL_HANDLE;
+    char winner_device_name[VK_MAX_PHYSICAL_DEVICE_NAME_SIZE] = { 0 };
+
+    trace(
+        LOG_TARGET,
+        "selecting the most suitable physical device..."
+    );
 
     for (uint32_t i = 0; i < instance->phy_device_count; ++i) {
+        vkGetPhysicalDeviceProperties(instance->phy_devices[i], &dev_props);
+
         current_score = rate_phy_device_suitability(
-            instance->phy_devices[i]
+            &dev_props
         );
 
         if (current_score > score) {
             score = current_score;
             winner_device = instance->phy_devices[i];
+            errno_t copy_result = strcpy_s(
+                winner_device_name,
+                VK_MAX_PHYSICAL_DEVICE_NAME_SIZE,
+                dev_props.deviceName
+            );
+
+            assert(copy_result == 0 && "unable to copy physical device name");
         }
     }
 
     assert(
         winner_device != VK_NULL_HANDLE
         && "Renderer: physical device must be selected"
+    );
+
+    trace(
+        LOG_TARGET,
+        "the most suitable physical device: \"%s\" (score: %d)",
+        winner_device_name, score
     );
 
     return winner_device;
@@ -65,11 +96,22 @@ Apriori2Error init_renderer_queues(
 ) {
     Apriori2Error error = SUCCESS;
 
+    trace(
+        LOG_TARGET,
+        "initializing renderer queues..."
+    );
+
     uint32_t queue_family_count = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(
         device,
         &queue_family_count,
         NULL
+    );
+
+    trace(
+        LOG_TARGET,
+        "queue family count: %d",
+        queue_family_count
     );
 
     VkQueueFamilyProperties *family_props = calloc(
@@ -134,8 +176,26 @@ Apriori2Error init_renderer_queues(
         error = GRAPHICS_QUEUE_FAMILY_NOT_FOUND;
     else if (!is_present_queue_found)
         error = PRESENT_QUEUE_FAMILY_NOT_FOUND;
-    else
+    else {
         error = SUCCESS;
+
+        trace(
+            LOG_TARGET,
+            "renderer queues:"
+        );
+
+        trace(
+            LOG_TARGET,
+            "\tgraphics queue family idx: %d",
+            queues->graphics_idx
+        );
+
+        trace(
+            LOG_TARGET,
+            "\tpresent queue family idx: %d",
+            queues->present_idx
+        );
+    }
 
     return error;
 }
@@ -145,6 +205,11 @@ Result new_renderer(
     Handle window_platform_handle
 ) {
     Result result = { 0 };
+
+    trace(
+        LOG_TARGET,
+        "creating new renderer..."
+    );
 
     result.object = calloc(1, sizeof(struct RendererFFI));
     if (result.object == NULL) {
@@ -169,6 +234,11 @@ Result new_renderer(
     );
     EXPECT_SUCCESS(result);
 
+    trace(
+        LOG_TARGET,
+        "new renderer successfully created"
+    );
+
     return result;
 
 failure:
@@ -182,4 +252,6 @@ void drop_renderer(Renderer renderer) {
         return;
 
     free(renderer);
+
+    trace(LOG_TARGET, "drop renderer");
 }

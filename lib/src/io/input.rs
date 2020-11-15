@@ -99,6 +99,15 @@ impl Input {
     }
 }
 
+impl fmt::Display for Input {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Action(action) => write!(f, "{}", action),
+            Self::Axis(axis) => write!(f, "{}", axis),
+        }
+    }
+}
+
 impl From<Axis> for Input {
     fn from(axis: Axis) -> Self {
         Self::Axis(axis)

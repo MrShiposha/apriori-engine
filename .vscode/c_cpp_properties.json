@@ -4,7 +4,7 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${workspaceFolder}/workspace/app/src/ffi",
+                "${workspaceFolder}/lib/src/ffi",
                 "${VULKAN_SDK}/Include/**"
             ],
             "defines": [

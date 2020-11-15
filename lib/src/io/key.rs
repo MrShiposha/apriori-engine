@@ -1,5 +1,6 @@
 use {
     std::{
+        fmt,
         collections::HashSet,
     },
     serde::{
@@ -242,6 +243,12 @@ impl VirtualKey {
     }
 }
 
+impl fmt::Display for VirtualKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", *self)
+    }
+}
+
 pub type KeyModsUnderlyingType = u32;
 
 bitflags! {
@@ -253,9 +260,8 @@ bitflags! {
     }
 }
 
-impl Serialize for KeyMods {
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<<S as Serializer>::Ok, <S as Serializer>::Error>
-    where S: Serializer {
+impl KeyMods {
+    pub fn as_virtual_keys(&self) -> Vec<VirtualKey> {
         macro_rules! vec_mods {
             (let $vec:ident = { $(($mods:expr, $repr:expr)),+ $(,)? }) => {
                 let mut $vec = vec![];
@@ -279,10 +285,28 @@ impl Serialize for KeyMods {
             }
         }
 
-        let mut seq = serializer.serialize_seq(Some(mods.len()))?;
+        mods
+    }
+}
 
-        for key_mod in mods {
-            seq.serialize_element(&key_mod)?;
+impl fmt::Display for KeyMods {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let display_string = self.as_virtual_keys()
+            .iter()
+            .join(",");
+
+        write!(f, "[{}]", display_string)
+    }
+}
+
+impl Serialize for KeyMods {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<<S as Serializer>::Ok, <S as Serializer>::Error>
+    where S: Serializer {
+        let keys = self.as_virtual_keys();
+        let mut seq = serializer.serialize_seq(Some(keys.len()))?;
+
+        for key in keys {
+            seq.serialize_element(&key)?;
         }
 
         seq.end()
@@ -310,7 +334,7 @@ impl<'de> Visitor<'de> for KeyModsVisitor {
 
         while let Some(key) = seq.next_element::<VirtualKey>()? {
             let key_mod = key.as_key_mods()
-                .ok_or(de::Error::custom(format!("{:#?} is not modifier key", key)))?;
+                .ok_or(de::Error::custom(format!("{} is not modifier key", key)))?;
 
             if mods.contains(key_mod) {
                 duplicated.insert(key);
@@ -327,7 +351,7 @@ impl<'de> Visitor<'de> for KeyModsVisitor {
                     format!(
                         "duplicated modifiers ({})",
                         duplicated.iter()
-                            .map(|key_mod| format!("{:#?}", key_mod))
+                            .map(|key_mod| format!("{}", key_mod))
                             .join(",")
                     )
                 )

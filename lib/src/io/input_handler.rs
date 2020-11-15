@@ -23,10 +23,21 @@ impl<Id: InputId> InputHandler<Id> {
     }
 
     pub fn update_inputs(&mut self, input_map: &InputMap<Id>) {
+        log::trace! {
+            target: Self::LOG_TARGET,
+            "update inputs"
+        }
+
         for (id, variants) in input_map.hash_map().iter() {
             let inputs: Vec<Input> = variants.clone().into();
 
             for input in inputs {
+                log::trace! {
+                    target: Self::LOG_TARGET,
+                    "\t{:?}: {}",
+                    id, input
+                }
+
                 let input = input.normalized();
                 match input.split_general_mod() {
                     Some((left, right)) => {

@@ -13,10 +13,17 @@ lazy_static! {
     pub(crate) static ref WINDOWS: RwLock<Vec<AssumeThreadSafe<HWND>>> = RwLock::new(vec![]);
 }
 
+const LOG_TARGET: &'static str = "Windows IO";
+
 pub fn execute() -> Result<()> {
     let mut msg: MSG = unsafe {
         std::mem::zeroed()
     };
+
+    log::trace! {
+        target: LOG_TARGET,
+        "execute IO"
+    }
 
     while is_active()? {
         for hwnd in WINDOWS.read()?.iter() {
@@ -39,6 +46,11 @@ pub fn execute() -> Result<()> {
 }
 
 pub fn stop() -> Result<()> {
+    log::trace! {
+        target: LOG_TARGET,
+        "stop IO"
+    }
+
     let mut is_active = IS_IO_ACTIVE.write()?;
     *is_active = false;
 

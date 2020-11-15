@@ -1,5 +1,6 @@
 use {
     std::{
+        fmt,
         cmp::{PartialEq, Eq},
         hash::{Hash, Hasher}
     },
@@ -25,6 +26,12 @@ impl AxisId {
             Self::Key(key) => Self::Key(key.normalized()),
             _ => self.clone()
         }
+    }
+}
+
+impl fmt::Display for AxisId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", *self)
     }
 }
 
@@ -66,6 +73,18 @@ impl Axis {
 
     pub fn mods(&self) -> KeyMods {
         self.mods
+    }
+}
+
+impl fmt::Display for Axis {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Axis(axis_id: {}, scale: {:?}, mods: {})",
+            self.axis_id,
+            self.scale,
+            self.mods
+        )
     }
 }
 

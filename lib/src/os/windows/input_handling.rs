@@ -100,7 +100,7 @@ unsafe fn window_cb_inner<Id: InputId>(
     if window_long_ptr == 0 {
         log::debug! {
             target: LOG_TARGET,
-            "get window long ptr"
+            "get window long ptr returned 0"
         }
         return Ok(None);
     }

@@ -18,4 +18,6 @@ typedef enum Apriori2Error {
     RENDERER_QUEUE_FAMILIES_NOT_FOUND
 } Apriori2Error;
 
+const char *error_to_string(Apriori2Error error);
+
 #endif // ___APRIORI2_ERROR_H___
