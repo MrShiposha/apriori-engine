@@ -416,6 +416,8 @@ void fill_renderer_queues(Renderer renderer) {
 }
 
 Result new_command_pool(VkDevice gpu, uint32_t queue_family_index) {
+    assert(gpu != NULL && "gpu must be not NULL");
+
     Result result = { 0 };
 
     VkCommandPoolCreateInfo cmd_pool_ci = {
@@ -448,26 +450,104 @@ Apriori2Error new_renderer_command_pools(Renderer renderer) {
 
         result = new_command_pool(renderer->gpu, family_idx);
         RESULT_UNWRAP(
-            renderer->pools.graphics_cmd,
+            renderer->pools.cmd.graphics,
             result
         );
 
-        renderer->pools.present_cmd = renderer->pools.graphics_cmd;
+        renderer->pools.cmd.present = renderer->pools.cmd.graphics;
     } else {
         result = new_command_pool(renderer->gpu, renderer->queues.graphics_family_idx);
         RESULT_UNWRAP(
-            renderer->pools.graphics_cmd,
+            renderer->pools.cmd.graphics,
             result
         );
 
         result = new_command_pool(renderer->gpu, renderer->queues.present_family_idx);
         RESULT_UNWRAP(
-            renderer->pools.present_cmd,
+            renderer->pools.cmd.present,
             result
         );
     }
 
     trace(LOG_TARGET, "new renderer command pools created successfully");
+
+failure:
+    return result.error;
+}
+
+Result new_command_buffer(VkDevice gpu, VkCommandPool cmd_pool, uint32_t buffer_count) {
+    assert(gpu != NULL && "gpu must be not NULL");
+    assert(cmd_pool != NULL && "cmd_pool must be not NULL");
+
+    Result result = { 0 };
+    VkCommandBufferAllocateInfo allocate_info = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+    };
+    VkCommandBuffer *buffers = calloc(buffer_count, sizeof(VkCommandBuffer));
+    if (buffers == NULL) {
+        result.error = OUT_OF_MEMORY;
+        return result;
+    }
+
+    allocate_info.commandPool = cmd_pool;
+    allocate_info.commandBufferCount = buffer_count;
+
+    result.error = vkAllocateCommandBuffers(
+        gpu,
+        &allocate_info,
+        buffers
+    );
+    result.object = buffers;
+
+    return result;
+}
+
+Apriori2Error new_renderer_command_buffers(Renderer renderer) {
+    assert(renderer != NULL && "renderer must be not NULL");
+
+    Result result = { 0 };
+
+    trace(LOG_TARGET, "creating new command buffers...");
+
+    if (renderer->queues.graphics_family_idx == renderer->queues.present_family_idx) {
+        result = new_command_buffer(
+            renderer->gpu,
+            renderer->pools.cmd.graphics,
+            renderer->images_count
+        );
+
+        RESULT_UNWRAP(
+            renderer->buffers.cmd.graphics,
+            result
+        );
+
+        renderer->buffers.cmd.present = renderer->buffers.cmd.graphics;
+    } else {
+        result = new_command_buffer(
+            renderer->gpu,
+            renderer->pools.cmd.graphics,
+            renderer->images_count
+        );
+
+        RESULT_UNWRAP(
+            renderer->buffers.cmd.graphics,
+            result
+        );
+
+        result = new_command_buffer(
+            renderer->gpu,
+            renderer->pools.cmd.present,
+            renderer->images_count
+        );
+
+        RESULT_UNWRAP(
+            renderer->buffers.cmd.present,
+            result
+        );
+    }
+
+    trace(LOG_TARGET, "new command buffers created successfully");
 
 failure:
     return result.error;
@@ -491,6 +571,9 @@ Result new_renderer(
     }
 
     renderer->vk_instance = vulkan_instance;
+
+    renderer->images_count = 2;
+    trace(LOG_TARGET, "images count: %d", renderer->images_count);
 
     VkPhysicalDevice phy_device = select_phy_device(vulkan_instance);
     result = new_surface(vulkan_instance->vk_handle, window_platform_handle);
@@ -517,6 +600,9 @@ Result new_renderer(
     result.error = new_renderer_command_pools(renderer);
     EXPECT_SUCCESS(result);
 
+    result.error = new_renderer_command_buffers(renderer);
+    EXPECT_SUCCESS(result);
+
     result.object = renderer;
 
     trace(
@@ -535,6 +621,52 @@ failure:
 void drop_renderer(Renderer renderer) {
     if (renderer == NULL)
         return;
+
+    if (renderer->queues.graphics_family_idx == renderer->queues.present_family_idx) {
+        vkFreeCommandBuffers(
+            renderer->gpu,
+            renderer->pools.cmd.graphics,
+            renderer->images_count,
+            renderer->buffers.cmd.graphics
+        );
+
+        free(renderer->buffers.cmd.graphics);
+
+        vkDestroyCommandPool(
+            renderer->gpu,
+            renderer->pools.cmd.graphics,
+            NULL
+        );
+    } else {
+        vkFreeCommandBuffers(
+            renderer->gpu,
+            renderer->pools.cmd.graphics,
+            renderer->images_count,
+            renderer->buffers.cmd.graphics
+        );
+
+        vkFreeCommandBuffers(
+            renderer->gpu,
+            renderer->pools.cmd.present,
+            renderer->images_count,
+            renderer->buffers.cmd.present
+        );
+
+        free(renderer->buffers.cmd.graphics);
+        free(renderer->buffers.cmd.present);
+
+        vkDestroyCommandPool(
+            renderer->gpu,
+            renderer->pools.cmd.graphics,
+            NULL
+        );
+
+        vkDestroyCommandPool(
+            renderer->gpu,
+            renderer->pools.cmd.present,
+            NULL
+        );
+    }
 
     vkDestroyDevice(renderer->gpu, NULL);
 

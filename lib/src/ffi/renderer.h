@@ -15,16 +15,27 @@ struct RendererQueues {
 };
 
 struct RendererPools {
-    VkCommandPool graphics_cmd;
-    VkCommandPool present_cmd;
+    struct {
+        VkCommandPool graphics;
+        VkCommandPool present;
+    } cmd;
+};
+
+struct RendererBuffers {
+    struct {
+        VkCommandBuffer *graphics;
+        VkCommandBuffer *present;
+    } cmd;
 };
 
 struct RendererFFI {
     VulkanInstance vk_instance;
     VkDevice gpu;
     VkSurfaceKHR surface;
+    uint32_t images_count;
     struct RendererQueues queues;
     struct RendererPools pools;
+    struct RendererBuffers buffers;
 };
 
 #endif // ___APRIORI2_RENDERER_H___
