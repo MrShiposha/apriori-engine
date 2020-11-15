@@ -5,11 +5,18 @@
 #include "ffi/export/vulkan_instance.h"
 
 struct RendererQueues {
-    uint32_t graphics_idx;
-    uint32_t present_idx;
+    uint32_t graphics_family_idx;
+    uint32_t present_family_idx;
+    uint32_t graphics_local_idx;
+    uint32_t present_local_idx;
 
     VkQueue graphics;
     VkQueue present;
+};
+
+struct RendererPools {
+    VkCommandPool graphics_cmd;
+    VkCommandPool present_cmd;
 };
 
 struct RendererFFI {
@@ -17,6 +24,7 @@ struct RendererFFI {
     VkDevice gpu;
     VkSurfaceKHR surface;
     struct RendererQueues queues;
+    struct RendererPools pools;
 };
 
 #endif // ___APRIORI2_RENDERER_H___

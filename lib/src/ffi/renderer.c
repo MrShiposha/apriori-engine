@@ -17,6 +17,8 @@
 #include "ffi/util.h"
 
 #define LOG_TARGET "FFI/Renderer"
+#define CI_GRAPHICS_IDX 0
+#define CI_PRESENT_IDX 1
 
 uint32_t rate_phy_device_suitability(VkPhysicalDeviceProperties *dev_props) {
     assert(dev_props != NULL && "dev_props must be not NULL");
@@ -152,8 +154,8 @@ Apriori2Error find_renderer_queue_family_indices(
             (current->queueFlags & VK_QUEUE_GRAPHICS_BIT)
             && is_present_support
         ) {
-            queues->graphics_idx = i;
-            queues->present_idx = i;
+            queues->graphics_family_idx = i;
+            queues->present_family_idx = i;
 
             is_graphics_queue_found = true;
             is_present_queue_found = true;
@@ -161,12 +163,12 @@ Apriori2Error find_renderer_queue_family_indices(
         }
 
         if (current->queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-            queues->graphics_idx = i;
+            queues->graphics_family_idx = i;
             is_graphics_queue_found = true;
         }
 
         if (is_present_support) {
-            queues->present_idx = i;
+            queues->present_family_idx = i;
             is_present_queue_found = true;
         }
     }
@@ -190,13 +192,13 @@ Apriori2Error find_renderer_queue_family_indices(
         trace(
             LOG_TARGET,
             "\tgraphics queue family idx: %d",
-            queues->graphics_idx
+            queues->graphics_family_idx
         );
 
         trace(
             LOG_TARGET,
             "\tpresent queue family idx: %d",
-            queues->present_idx
+            queues->present_family_idx
         );
     }
 
@@ -213,34 +215,37 @@ void fill_renderer_queues_create_info(
     assert(queues_cis != NULL && "queues_cis must be not NULL");
 
     static float priorities[2] = { 0 };
-    const uint8_t ci_graphics_idx = 0;
-    const uint8_t ci_present_idx = 1;
 
     trace(LOG_TARGET, "filling renderer queues create info...");
 
-    priorities[ci_graphics_idx] = 1.0f;
-    priorities[ci_present_idx] = 0.75f;
+    priorities[CI_GRAPHICS_IDX] = 1.0f;
+    priorities[CI_PRESENT_IDX] = 0.75f;
 
-    if (queues->graphics_idx == queues->present_idx) {
+    if (queues->graphics_family_idx == queues->present_family_idx) {
+        uint32_t family_idx = queues->graphics_family_idx;
+
         *queues_cis_count = 1;
+        queues->graphics_local_idx = 0;
+        queues->present_local_idx = 0;
 
-        uint32_t family_idx = queues->graphics_idx;
         queues_cis->sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         queues_cis->queueCount = 2;
         queues_cis->queueFamilyIndex = family_idx;
         queues_cis->pQueuePriorities = priorities;
     } else {
         *queues_cis_count = 2;
+        queues->graphics_local_idx = CI_GRAPHICS_IDX;
+        queues->present_local_idx = CI_PRESENT_IDX;
 
-        queues_cis[ci_graphics_idx].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queues_cis[ci_graphics_idx].queueCount = 1;
-        queues_cis[ci_graphics_idx].queueFamilyIndex = queues->graphics_idx;
-        queues_cis[ci_graphics_idx].pQueuePriorities = &priorities[ci_graphics_idx];
+        queues_cis[CI_GRAPHICS_IDX].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queues_cis[CI_GRAPHICS_IDX].queueCount = 1;
+        queues_cis[CI_GRAPHICS_IDX].queueFamilyIndex = queues->graphics_family_idx;
+        queues_cis[CI_GRAPHICS_IDX].pQueuePriorities = &priorities[CI_GRAPHICS_IDX];
 
-        queues_cis[ci_present_idx].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queues_cis[ci_present_idx].queueCount = 1;
-        queues_cis[ci_present_idx].queueFamilyIndex = queues->present_idx;
-        queues_cis[ci_present_idx].pQueuePriorities = &priorities[ci_present_idx];
+        queues_cis[CI_PRESENT_IDX].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queues_cis[CI_PRESENT_IDX].queueCount = 1;
+        queues_cis[CI_PRESENT_IDX].queueFamilyIndex = queues->present_family_idx;
+        queues_cis[CI_PRESENT_IDX].pQueuePriorities = &priorities[CI_PRESENT_IDX];
     }
 }
 
@@ -394,6 +399,80 @@ failure:
     return result;
 }
 
+void fill_renderer_queues(Renderer renderer) {
+    vkGetDeviceQueue(
+        renderer->gpu,
+        renderer->queues.graphics_family_idx,
+        renderer->queues.graphics_local_idx,
+        &renderer->queues.graphics
+    );
+
+    vkGetDeviceQueue(
+        renderer->gpu,
+        renderer->queues.present_family_idx,
+        renderer->queues.present_local_idx,
+        &renderer->queues.present
+    );
+}
+
+Result new_command_pool(VkDevice gpu, uint32_t queue_family_index) {
+    Result result = { 0 };
+
+    VkCommandPoolCreateInfo cmd_pool_ci = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO
+    };
+    VkCommandPool cmd_pool = VK_NULL_HANDLE;
+
+    cmd_pool_ci.queueFamilyIndex = queue_family_index;
+
+    result.error = vkCreateCommandPool(
+        gpu,
+        &cmd_pool_ci,
+        NULL,
+        &cmd_pool
+    );
+    result.object = cmd_pool;
+
+    return result;
+}
+
+Apriori2Error new_renderer_command_pools(Renderer renderer) {
+    assert(renderer != NULL && "pools must be not NULL");
+
+    Result result = { 0 };
+
+    trace(LOG_TARGET, "creating new renderer command pools...");
+
+    if (renderer->queues.graphics_family_idx == renderer->queues.present_family_idx) {
+        uint32_t family_idx = renderer->queues.graphics_family_idx;
+
+        result = new_command_pool(renderer->gpu, family_idx);
+        RESULT_UNWRAP(
+            renderer->pools.graphics_cmd,
+            result
+        );
+
+        renderer->pools.present_cmd = renderer->pools.graphics_cmd;
+    } else {
+        result = new_command_pool(renderer->gpu, renderer->queues.graphics_family_idx);
+        RESULT_UNWRAP(
+            renderer->pools.graphics_cmd,
+            result
+        );
+
+        result = new_command_pool(renderer->gpu, renderer->queues.present_family_idx);
+        RESULT_UNWRAP(
+            renderer->pools.present_cmd,
+            result
+        );
+    }
+
+    trace(LOG_TARGET, "new renderer command pools created successfully");
+
+failure:
+    return result.error;
+}
+
 Result new_renderer(
     VulkanInstance vulkan_instance,
     Handle window_platform_handle
@@ -432,6 +511,11 @@ Result new_renderer(
         renderer->gpu,
         result
     );
+
+    fill_renderer_queues(renderer);
+
+    result.error = new_renderer_command_pools(renderer);
+    EXPECT_SUCCESS(result);
 
     result.object = renderer;
 
