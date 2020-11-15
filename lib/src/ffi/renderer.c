@@ -14,6 +14,7 @@
 #include "ffi/result_fns.h"
 #include "ffi/os/surface.h"
 #include "ffi/log.h"
+#include "ffi/util.h"
 
 #define LOG_TARGET "FFI/Renderer"
 
@@ -89,21 +90,23 @@ VkPhysicalDevice select_phy_device(VulkanInstance instance) {
     return winner_device;
 }
 
-Apriori2Error init_renderer_queues(
+Apriori2Error find_renderer_queue_family_indices(
+    VkPhysicalDevice phy_device,
     struct RendererQueues *queues,
-    VkPhysicalDevice device,
     VkSurfaceKHR surface
 ) {
+    assert(queues != NULL && "queues must be not NULL");
+
     Apriori2Error error = SUCCESS;
 
     trace(
         LOG_TARGET,
-        "initializing renderer queues..."
+        "searching for renderer queue family indices..."
     );
 
     uint32_t queue_family_count = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(
-        device,
+        phy_device,
         &queue_family_count,
         NULL
     );
@@ -121,7 +124,7 @@ Apriori2Error init_renderer_queues(
         return OUT_OF_MEMORY;
 
     vkGetPhysicalDeviceQueueFamilyProperties(
-        device,
+        phy_device,
         &queue_family_count,
         family_props
     );
@@ -136,7 +139,7 @@ Apriori2Error init_renderer_queues(
         current = family_props + i;
 
         error = vkGetPhysicalDeviceSurfaceSupportKHR(
-            device,
+            phy_device,
             i,
             surface,
             &is_present_support
@@ -200,6 +203,197 @@ Apriori2Error init_renderer_queues(
     return error;
 }
 
+void fill_renderer_queues_create_info(
+    struct RendererQueues *queues,
+    uint32_t *queues_cis_count,
+    VkDeviceQueueCreateInfo *queues_cis
+) {
+    assert(queues != NULL && "queues must be not NULL");
+    assert(queues_cis_count != NULL && "queues_cis_count must be not NULL");
+    assert(queues_cis != NULL && "queues_cis must be not NULL");
+
+    static float priorities[2] = { 0 };
+    const uint8_t ci_graphics_idx = 0;
+    const uint8_t ci_present_idx = 1;
+
+    trace(LOG_TARGET, "filling renderer queues create info...");
+
+    priorities[ci_graphics_idx] = 1.0f;
+    priorities[ci_present_idx] = 0.75f;
+
+    if (queues->graphics_idx == queues->present_idx) {
+        *queues_cis_count = 1;
+
+        uint32_t family_idx = queues->graphics_idx;
+        queues_cis->sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queues_cis->queueCount = 2;
+        queues_cis->queueFamilyIndex = family_idx;
+        queues_cis->pQueuePriorities = priorities;
+    } else {
+        *queues_cis_count = 2;
+
+        queues_cis[ci_graphics_idx].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queues_cis[ci_graphics_idx].queueCount = 1;
+        queues_cis[ci_graphics_idx].queueFamilyIndex = queues->graphics_idx;
+        queues_cis[ci_graphics_idx].pQueuePriorities = &priorities[ci_graphics_idx];
+
+        queues_cis[ci_present_idx].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queues_cis[ci_present_idx].queueCount = 1;
+        queues_cis[ci_present_idx].queueFamilyIndex = queues->present_idx;
+        queues_cis[ci_present_idx].pQueuePriorities = &priorities[ci_present_idx];
+    }
+}
+
+Result check_all_device_layers_available(VkPhysicalDevice device, const char **layers, uint32_t num_layers) {
+    Apriori2Error err = SUCCESS;
+    VkLayerProperties *layer_props = NULL;
+    uint32_t property_count = 0;
+
+    trace(LOG_TARGET, "checking requested validation layers");
+
+    err = vkEnumerateDeviceLayerProperties(device, &property_count, NULL);
+    if (err != VK_SUCCESS) {
+        goto exit;
+    }
+
+    trace(LOG_TARGET, "available validation layers count: %d", property_count);
+
+    layer_props = malloc(property_count * sizeof(VkLayerProperties));
+    if (layer_props == NULL) {
+        err = OUT_OF_MEMORY;
+        goto exit;
+    }
+
+    err = vkEnumerateDeviceLayerProperties(device, &property_count, layer_props);
+    if (err != VK_SUCCESS)
+        goto exit;
+
+    for (uint32_t i = 0, j = 0; i < num_layers; ++i) {
+        for (j = 0; j < property_count; ++j) {
+            if (!strcmp(layers[i], layer_props[j].layerName))
+                break;
+        }
+
+        if (j == property_count) {
+            // Some layer was not found
+            err = LAYERS_NOT_FOUND;
+            error(LOG_TARGET, "layer \"%s\" is not found", layers[i]);
+        } else {
+            trace(LOG_TARGET, "\tvalidation layer \"%s\": OK", layers[i]);
+        }
+    }
+
+exit:
+    free(layer_props);
+    return apriori2_error(err);
+}
+
+Result check_all_device_extensions_available(
+    VkPhysicalDevice phy_device,
+    const char **extensions,
+    uint32_t num_extensions
+) {
+    Apriori2Error err = SUCCESS;
+    VkExtensionProperties *extension_props = NULL;
+    uint32_t property_count = 0;
+
+    trace(LOG_TARGET, "checking requested extensions");
+
+    err = vkEnumerateDeviceExtensionProperties(phy_device, NULL, &property_count, NULL);
+    if (err != VK_SUCCESS) {
+        goto exit;
+    }
+
+    trace(LOG_TARGET, "available extension count: %d", property_count);
+
+    extension_props = malloc(property_count * sizeof(VkLayerProperties));
+    if (extension_props == NULL) {
+        err = OUT_OF_MEMORY;
+        goto exit;
+    }
+
+    err = vkEnumerateDeviceExtensionProperties(phy_device, NULL, &property_count, extension_props);
+    if (err != VK_SUCCESS)
+        goto exit;
+
+    for (uint32_t i = 0, j = 0; i < num_extensions; ++i) {
+        for (j = 0; j < property_count; ++j) {
+            if (!strcmp(extensions[i], extension_props[j].extensionName))
+                break;
+        }
+
+        if (j == property_count) {
+            // Some extensions was not found
+            err = EXTENSIONS_NOT_FOUND;
+            error(LOG_TARGET, "extension \"%s\" is not found", extensions[i]);
+        } else {
+            trace(LOG_TARGET, "\textension \"%s\": OK", extensions[i]);
+        }
+    }
+
+exit:
+    free(extension_props);
+    return apriori2_error(err);
+}
+
+Result new_gpu(VkPhysicalDevice phy_device, struct RendererQueues *queues) {
+    assert(phy_device != NULL && "phy_device must be not NULL");
+    assert(queues != NULL && "queues must be not NULL");
+
+    Result result = { 0 };
+    uint32_t queues_cis_count = 0;
+    VkDeviceQueueCreateInfo queues_cis[2] = { 0 };
+    VkDeviceCreateInfo device_ci = {
+        .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO
+    };
+    VkDevice gpu = VK_NULL_HANDLE;
+
+    trace(LOG_TARGET, "creating new GPU object...");
+
+#   ifdef ___debug___
+    const char *layer_names[] = {
+        "VK_LAYER_LUNARG_standard_validation"
+    };
+
+    const uint32_t layer_names_count = STATIC_ARRAY_SIZE(layer_names);
+#   else
+    const char *layer_names = NULL;
+    const uint32_t layer_names_count = 0;
+#   endif // ___debug___
+
+    const char *extension_names[] = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    };
+
+    result = check_all_device_layers_available(phy_device, layer_names, layer_names_count);
+    EXPECT_SUCCESS(result);
+
+    result = check_all_device_extensions_available(
+        phy_device,
+        extension_names,
+        STATIC_ARRAY_SIZE(extension_names)
+    );
+    EXPECT_SUCCESS(result);
+
+    fill_renderer_queues_create_info(queues, &queues_cis_count, queues_cis);
+
+    device_ci.enabledLayerCount = layer_names_count;
+    device_ci.ppEnabledLayerNames = layer_names;
+    device_ci.enabledExtensionCount = STATIC_ARRAY_SIZE(extension_names);
+    device_ci.ppEnabledExtensionNames = extension_names;
+    device_ci.queueCreateInfoCount = queues_cis_count;
+    device_ci.pQueueCreateInfos = queues_cis;
+
+    result.error = vkCreateDevice(phy_device, &device_ci, NULL, &gpu);
+    result.object = gpu;
+    EXPECT_SUCCESS(result);
+
+    trace(LOG_TARGET, "new GPU object created successfully");
+
+failure:
+    return result;
+}
+
 Result new_renderer(
     VulkanInstance vulkan_instance,
     Handle window_platform_handle
@@ -211,28 +405,35 @@ Result new_renderer(
         "creating new renderer..."
     );
 
-    result.object = calloc(1, sizeof(struct RendererFFI));
-    if (result.object == NULL) {
+    Renderer renderer = calloc(1, sizeof(struct RendererFFI));
+    if (renderer == NULL) {
         result.error = OUT_OF_MEMORY;
         goto failure;
     }
 
-    Renderer renderer = AS(result.object, Renderer);
     renderer->vk_instance = vulkan_instance;
 
     VkPhysicalDevice phy_device = select_phy_device(vulkan_instance);
-    VkSurfaceKHR surface = VK_NULL_HANDLE;
+    result = new_surface(vulkan_instance->vk_handle, window_platform_handle);
     RESULT_UNWRAP(
-        surface,
-        new_surface(vulkan_instance->vk_handle, window_platform_handle)
+        renderer->surface,
+        result
     );
 
-    result.error = init_renderer_queues(
-        &renderer->queues,
+    result.error = find_renderer_queue_family_indices(
         phy_device,
-        surface
+        &renderer->queues,
+        renderer->surface
     );
     EXPECT_SUCCESS(result);
+
+    result = new_gpu(phy_device, &renderer->queues);
+    RESULT_UNWRAP(
+        renderer->gpu,
+        result
+    );
+
+    result.object = renderer;
 
     trace(
         LOG_TARGET,
@@ -251,6 +452,9 @@ void drop_renderer(Renderer renderer) {
     if (renderer == NULL)
         return;
 
+    vkDestroyDevice(renderer->gpu, NULL);
+
+    drop_surface(renderer->vk_instance->vk_handle, renderer->surface);
     free(renderer);
 
     trace(LOG_TARGET, "drop renderer");

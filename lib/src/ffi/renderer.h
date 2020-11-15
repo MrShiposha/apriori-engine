@@ -15,6 +15,7 @@ struct RendererQueues {
 struct RendererFFI {
     VulkanInstance vk_instance;
     VkDevice gpu;
+    VkSurfaceKHR surface;
     struct RendererQueues queues;
 };
 
