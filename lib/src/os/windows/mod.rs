@@ -48,6 +48,8 @@ pub struct Window<Id: io::InputId> {
 }
 
 impl<Id: io::InputId> Window<Id> {
+    const LOG_TARGET: &'static str = "Window";
+
     pub fn new(
         title: &str,
         size: WindowSize,
@@ -116,6 +118,19 @@ impl<Id: io::InputId> Window<Id> {
         };
 
         Ok(wnd)
+    }
+}
+
+impl<Id: io::InputId> Drop for Window<Id> {
+    fn drop(&mut self) {
+        unsafe {
+            if DestroyWindow(self.hwnd) == 0 {
+                log::error! {
+                    target: Self::LOG_TARGET,
+                    "{}", last_error("window destroy error")
+                };
+            }
+        }
     }
 }
 
