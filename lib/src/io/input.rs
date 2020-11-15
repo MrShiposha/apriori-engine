@@ -1,6 +1,7 @@
 use {
     std::{
         collections::HashMap,
+        path::Path,
         fs::File,
         hash::Hash,
         marker::Unpin,
@@ -129,11 +130,9 @@ pub struct InputMap<Id: Hash + Eq> {
 }
 
 impl<Id: InputId> InputMap<Id> {
-    pub fn load<P: AsRef<str>>(path: P) -> Result<Self> {
-        let path = path.as_ref();
-
+    pub fn load<P: AsRef<Path>>(path: P) -> Result<Self> {
         let file = File::open(path)?;
-        from_reader(file).map_err(|err| err.into())
+        Ok(from_reader(file)?)
     }
 
     pub fn hash_map(&self) -> &HashMap<Id, InputVariants> {
