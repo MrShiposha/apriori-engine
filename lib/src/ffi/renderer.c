@@ -21,7 +21,7 @@
 #define CI_PRESENT_IDX 1
 
 uint32_t rate_phy_device_suitability(VkPhysicalDeviceProperties *dev_props) {
-    assert(dev_props != NULL && "dev_props must be not NULL");
+    ASSERT_NOT_NULL(dev_props);
 
     uint32_t score = 0;
 
@@ -93,8 +93,8 @@ VkPhysicalDevice select_phy_device(VulkanInstance instance) {
 }
 
 Result new_swapchain(VkPhysicalDevice phy_device, Renderer renderer) {
-    assert(phy_device != NULL && "phy_device must be not NULL");
-    assert(renderer != NULL && "renderer must be not NULL");
+    ASSERT_NOT_NULL(phy_device);
+    ASSERT_NOT_NULL(renderer);
 
     Result result = { 0 };
     VkSwapchainCreateInfoKHR swapchain_ci = {
@@ -222,7 +222,7 @@ Apriori2Error find_renderer_queue_family_indices(
     struct RendererQueues *queues,
     VkSurfaceKHR surface
 ) {
-    assert(queues != NULL && "queues must be not NULL");
+    ASSERT_NOT_NULL(queues);
 
     Apriori2Error error = SUCCESS;
 
@@ -335,9 +335,9 @@ void fill_renderer_queues_create_info(
     uint32_t *queues_cis_count,
     VkDeviceQueueCreateInfo *queues_cis
 ) {
-    assert(queues != NULL && "queues must be not NULL");
-    assert(queues_cis_count != NULL && "queues_cis_count must be not NULL");
-    assert(queues_cis != NULL && "queues_cis must be not NULL");
+    ASSERT_NOT_NULL(queues);
+    ASSERT_NOT_NULL(queues_cis_count);
+    ASSERT_NOT_NULL(queues_cis);
 
     static float priorities[2] = { 0 };
 
@@ -467,8 +467,8 @@ exit:
 }
 
 Result new_gpu(VkPhysicalDevice phy_device, struct RendererQueues *queues) {
-    assert(phy_device != NULL && "phy_device must be not NULL");
-    assert(queues != NULL && "queues must be not NULL");
+    ASSERT_NOT_NULL(phy_device);
+    ASSERT_NOT_NULL(queues);
 
     Result result = { 0 };
     uint32_t queues_cis_count = 0;
@@ -541,7 +541,7 @@ void fill_renderer_queues(Renderer renderer) {
 }
 
 Result new_command_pool(VkDevice gpu, uint32_t queue_family_index) {
-    assert(gpu != NULL && "gpu must be not NULL");
+    ASSERT_NOT_NULL(gpu);
 
     Result result = { 0 };
 
@@ -564,7 +564,7 @@ Result new_command_pool(VkDevice gpu, uint32_t queue_family_index) {
 }
 
 Apriori2Error new_renderer_command_pools(Renderer renderer) {
-    assert(renderer != NULL && "pools must be not NULL");
+    ASSERT_NOT_NULL(renderer);
 
     Result result = { 0 };
 
@@ -601,8 +601,8 @@ failure:
 }
 
 Result new_command_buffer(VkDevice gpu, VkCommandPool cmd_pool, uint32_t buffer_count) {
-    assert(gpu != NULL && "gpu must be not NULL");
-    assert(cmd_pool != NULL && "cmd_pool must be not NULL");
+    ASSERT_NOT_NULL(gpu);
+    ASSERT_NOT_NULL(cmd_pool);
 
     Result result = { 0 };
     VkCommandBufferAllocateInfo allocate_info = {
@@ -629,7 +629,7 @@ Result new_command_buffer(VkDevice gpu, VkCommandPool cmd_pool, uint32_t buffer_
 }
 
 Apriori2Error new_renderer_command_buffers(Renderer renderer) {
-    assert(renderer != NULL && "renderer must be not NULL");
+    ASSERT_NOT_NULL(renderer);
 
     Result result = { 0 };
 

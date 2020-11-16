@@ -26,6 +26,9 @@ struct RendererBuffers {
         VkCommandBuffer *graphics;
         VkCommandBuffer *present;
     } cmd;
+
+    VkImage *images;
+    VkImageView *views;
 };
 
 struct RendererFFI {
