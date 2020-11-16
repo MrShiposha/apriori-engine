@@ -678,6 +678,41 @@ failure:
     return result.error;
 }
 
+Result new_images(Renderer renderer) {
+    ASSERT_NOT_NULL(renderer);
+
+    Result result = { 0 };
+    uint32_t images_count = 0;
+    VkImage *images = NULL;
+
+    result.error = vkGetSwapchainImagesKHR(renderer->gpu, renderer->swapchain, &images_count, NULL);
+    EXPECT_SUCCESS(result);
+
+    images = calloc(images_count, sizeof(VkImage));
+    if (images == NULL) {
+        result.error = OUT_OF_MEMORY;
+        goto failure;
+    }
+
+    result.error = vkGetSwapchainImagesKHR(
+        renderer->gpu,
+        renderer->swapchain,
+        &images_count,
+        images
+    );
+    EXPECT_SUCCESS(result);
+
+    result.object = images;
+
+    trace(LOG_TARGET, "new images created successfully");
+    return result;
+
+failure:
+    free(images);
+
+    return result;
+}
+
 Result new_renderer(
     VulkanInstance vulkan_instance,
     Handle window_platform_handle,
@@ -738,6 +773,12 @@ Result new_renderer(
         result
     );
 
+    result = new_images(renderer);
+    RESULT_UNWRAP(
+        renderer->buffers.present_images,
+        result
+    );
+
     fill_renderer_queues(renderer);
 
     result.error = new_renderer_command_pools(renderer);
@@ -764,6 +805,8 @@ failure:
 void drop_renderer(Renderer renderer) {
     if (renderer == NULL)
         return;
+
+    free(renderer->buffers.present_images);
 
     vkDestroySwapchainKHR(
         renderer->gpu,
