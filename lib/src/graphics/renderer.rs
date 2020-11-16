@@ -21,12 +21,16 @@ impl Renderer {
             "creating new renderer..."
         }
 
+        let size = window.size()?;
+
         let renderer;
         unsafe {
             renderer = Self {
                 renderer_ffi: ffi::new_renderer(
                     vk_instance.instance_ffi,
-                    window.platform_handle()
+                    window.platform_handle(),
+                    size.width,
+                    size.height
                 ).try_unwrap()?
             }
         }

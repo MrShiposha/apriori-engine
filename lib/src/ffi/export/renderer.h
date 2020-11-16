@@ -8,7 +8,9 @@ typedef struct RendererFFI *Renderer;
 
 Result new_renderer(
     VulkanInstance vulkan_instance,
-    Handle window_platform_handle
+    Handle window_platform_handle,
+    uint16_t window_width,
+    uint16_t window_height
 );
 
 void drop_renderer(Renderer renderer);

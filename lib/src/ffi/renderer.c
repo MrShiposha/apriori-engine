@@ -92,6 +92,131 @@ VkPhysicalDevice select_phy_device(VulkanInstance instance) {
     return winner_device;
 }
 
+Result new_swapchain(VkPhysicalDevice phy_device, Renderer renderer) {
+    assert(phy_device != NULL && "phy_device must be not NULL");
+    assert(renderer != NULL && "renderer must be not NULL");
+
+    Result result = { 0 };
+    VkSwapchainCreateInfoKHR swapchain_ci = {
+        .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR
+    };
+    VkSwapchainKHR swapchain;
+    uint32_t surface_formats_count = 0;
+    VkSurfaceFormatKHR *surface_formats = NULL;
+    uint32_t present_modes_count = 0;
+    VkPresentModeKHR *present_modes = NULL;
+    VkPresentModeKHR present_mode = VK_PRESENT_MODE_FIFO_KHR;
+
+    trace(LOG_TARGET, "creating new swapchain...");
+
+    swapchain_ci.surface = renderer->surface;
+    swapchain_ci.minImageCount = renderer->images_count;
+
+    result.error = vkGetPhysicalDeviceSurfaceFormatsKHR(
+        phy_device,
+        renderer->surface,
+        &surface_formats_count,
+        NULL
+    );
+    EXPECT_SUCCESS(result);
+
+    surface_formats = calloc(surface_formats_count, sizeof(VkSurfaceFormatKHR));
+    if (surface_formats == NULL) {
+        result.error = OUT_OF_MEMORY;
+        goto failure;
+    }
+
+    result.error = vkGetPhysicalDeviceSurfaceFormatsKHR(
+        phy_device,
+        renderer->surface,
+        &surface_formats_count,
+        surface_formats
+    );
+    EXPECT_SUCCESS(result);
+
+    result.error = vkGetPhysicalDeviceSurfacePresentModesKHR(
+        phy_device,
+        renderer->surface,
+        &present_modes_count,
+        NULL
+    );
+    EXPECT_SUCCESS(result);
+
+    present_modes = calloc(present_modes_count, sizeof(VkPresentModeKHR));
+    if (present_modes == NULL) {
+        result.error = OUT_OF_MEMORY;
+        goto failure;
+    }
+
+    result.error = vkGetPhysicalDeviceSurfacePresentModesKHR(
+        phy_device,
+        renderer->surface,
+        &present_modes_count,
+        present_modes
+    );
+    EXPECT_SUCCESS(result);
+
+    uint32_t selected_format = 0;
+    for (uint32_t i = 0; i < surface_formats_count; ++i) {
+        if (
+            surface_formats[i].format == VK_FORMAT_B8G8R8A8_SRGB
+            && surface_formats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
+        ) {
+            trace(LOG_TARGET, "found SRGB B8G8R8A8 format");
+            selected_format = i;
+            break;
+        }
+    }
+
+    for (uint32_t i = 0; i < present_modes_count; ++i) {
+        if (present_modes[i] == VK_PRESENT_MODE_MAILBOX_KHR)
+            present_mode = present_modes[i];
+    }
+
+    swapchain_ci.imageFormat = surface_formats[selected_format].format;
+    swapchain_ci.imageColorSpace = surface_formats[selected_format].colorSpace;
+    swapchain_ci.imageExtent = renderer->image_extent;
+    swapchain_ci.imageArrayLayers = 1;
+    swapchain_ci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    swapchain_ci.presentMode = present_mode;
+
+    uint32_t queue_families[] = {
+        renderer->queues.graphics_family_idx,
+        renderer->queues.present_family_idx
+    };
+
+    if (renderer->queues.graphics_family_idx == renderer->queues.present_family_idx) {
+        swapchain_ci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    } else {
+        swapchain_ci.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+        swapchain_ci.queueFamilyIndexCount = STATIC_ARRAY_SIZE(queue_families);
+        swapchain_ci.pQueueFamilyIndices = queue_families;
+    }
+
+    swapchain_ci.preTransform = renderer->surface_caps.currentTransform;
+    swapchain_ci.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    swapchain_ci.clipped = VK_TRUE;
+    swapchain_ci.oldSwapchain = VK_NULL_HANDLE;
+
+    result.error = vkCreateSwapchainKHR(
+        renderer->gpu,
+        &swapchain_ci,
+        NULL,
+        &swapchain
+    );
+    result.object = swapchain;
+    EXPECT_SUCCESS(result);
+
+    trace(LOG_TARGET, "new swapchain created successfully");
+
+failure:
+    free(present_modes);
+    free(surface_formats);
+
+    return result;
+}
+
 Apriori2Error find_renderer_queue_family_indices(
     VkPhysicalDevice phy_device,
     struct RendererQueues *queues,
@@ -555,7 +680,9 @@ failure:
 
 Result new_renderer(
     VulkanInstance vulkan_instance,
-    Handle window_platform_handle
+    Handle window_platform_handle,
+    uint16_t window_width,
+    uint16_t window_height
 ) {
     Result result = { 0 };
 
@@ -572,8 +699,8 @@ Result new_renderer(
 
     renderer->vk_instance = vulkan_instance;
 
-    renderer->images_count = 2;
-    trace(LOG_TARGET, "images count: %d", renderer->images_count);
+    renderer->image_extent.width = window_width;
+    renderer->image_extent.height = window_height;
 
     VkPhysicalDevice phy_device = select_phy_device(vulkan_instance);
     result = new_surface(vulkan_instance->vk_handle, window_platform_handle);
@@ -581,6 +708,16 @@ Result new_renderer(
         renderer->surface,
         result
     );
+
+    result.error = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+        phy_device,
+        renderer->surface,
+        &renderer->surface_caps
+    );
+    EXPECT_SUCCESS(result);
+
+    renderer->images_count = renderer->surface_caps.maxImageCount;
+    trace(LOG_TARGET, "images count: %d", renderer->images_count);
 
     result.error = find_renderer_queue_family_indices(
         phy_device,
@@ -592,6 +729,12 @@ Result new_renderer(
     result = new_gpu(phy_device, &renderer->queues);
     RESULT_UNWRAP(
         renderer->gpu,
+        result
+    );
+
+    result = new_swapchain(phy_device, renderer);
+    RESULT_UNWRAP(
+        renderer->swapchain,
         result
     );
 
@@ -621,6 +764,12 @@ failure:
 void drop_renderer(Renderer renderer) {
     if (renderer == NULL)
         return;
+
+    vkDestroySwapchainKHR(
+        renderer->gpu,
+        renderer->swapchain,
+        NULL
+    );
 
     if (renderer->queues.graphics_family_idx == renderer->queues.present_family_idx) {
         vkFreeCommandBuffers(

@@ -1,6 +1,6 @@
 use {
     std::fmt,
-    crate::{ffi, io}
+    crate::{core::Result, ffi, io}
 };
 
 #[cfg(target_os = "windows")]
@@ -54,6 +54,8 @@ pub trait WindowMethods<Id: io::InputId> {
     fn show(&self);
 
     fn hide(&self);
+
+    fn size(&self) -> Result<WindowSize>;
 
     fn platform_handle(&self) -> ffi::Handle;
 

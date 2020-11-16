@@ -24,6 +24,7 @@ use {
                 HICON,
                 HBRUSH,
                 HMENU,
+                RECT,
             }
         },
         um::{
@@ -217,6 +218,24 @@ impl<Id: io::InputId> WindowMethods<Id> for Window<Id> {
         unsafe {
             ShowWindow(self.hwnd, SW_HIDE);
         }
+    }
+
+    fn size(&self) -> Result<WindowSize> {
+        let size;
+        unsafe {
+            let mut rect: RECT = std::mem::zeroed();
+
+            if GetWindowRect(self.hwnd, &mut rect) == 0 {
+                return Err(last_error("get window size"));
+            }
+
+            size = WindowSize {
+                width: (rect.right - rect.left).abs() as u16,
+                height: (rect.bottom - rect.top).abs() as u16
+            }
+        }
+
+        Ok(size)
     }
 
     fn platform_handle(&self) -> ffi::Handle {

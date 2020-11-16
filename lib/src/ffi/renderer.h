@@ -31,8 +31,11 @@ struct RendererBuffers {
 struct RendererFFI {
     VulkanInstance vk_instance;
     VkDevice gpu;
-    VkSurfaceKHR surface;
     uint32_t images_count;
+    VkExtent2D image_extent;
+    VkSurfaceKHR surface;
+    VkSurfaceCapabilitiesKHR surface_caps;
+    VkSwapchainKHR swapchain;
     struct RendererQueues queues;
     struct RendererPools pools;
     struct RendererBuffers buffers;
