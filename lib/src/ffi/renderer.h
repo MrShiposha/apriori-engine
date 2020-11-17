@@ -3,6 +3,7 @@
 
 #include <vulkan/vulkan.h>
 #include "ffi/export/vulkan_instance.h"
+#include "ffi/export/dyn_array.h"
 
 struct RendererQueues {
     uint32_t graphics_family_idx;
@@ -27,8 +28,8 @@ struct RendererBuffers {
         VkCommandBuffer *present;
     } cmd;
 
-    VkImage *present_images;
-    VkImageView *present_views;
+    DynArray swapchain_images;
+    DynArray swapchain_views;
 };
 
 struct RendererFFI {
@@ -39,6 +40,7 @@ struct RendererFFI {
     VkSurfaceKHR surface;
     VkSurfaceCapabilitiesKHR surface_caps;
     VkSwapchainKHR swapchain;
+    VkSurfaceFormatKHR surface_format;
     struct RendererQueues queues;
     struct RendererPools pools;
     struct RendererBuffers buffers;

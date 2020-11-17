@@ -19,6 +19,13 @@
         goto failure; \
 } while(0)
 
+#define EXPECT_MEM_ALLOC(result, ptr) do { \
+    if ((ptr) == NULL) { \
+        (result).error = OUT_OF_MEMORY; \
+        goto failure; \
+    } \
+} while(0)
+
 typedef struct Result {
     Apriori2Error error;
     Handle object;

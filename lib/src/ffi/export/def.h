@@ -3,6 +3,10 @@
 
 typedef void *Handle;
 
+typedef unsigned char Byte;
+
+typedef Byte *Bytes;
+
 #define MACRO_EXPAND(...) __VA_ARGS__
 
 #define UNUSED_VAR(x) (void)(x)

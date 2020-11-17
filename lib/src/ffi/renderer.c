@@ -15,6 +15,7 @@
 #include "ffi/os/surface.h"
 #include "ffi/log.h"
 #include "ffi/util.h"
+#include "ffi/export/dyn_array.h"
 
 #define LOG_TARGET "FFI/Renderer"
 #define CI_GRAPHICS_IDX 0
@@ -92,6 +93,62 @@ VkPhysicalDevice select_phy_device(VulkanInstance instance) {
     return winner_device;
 }
 
+Result phy_device_surface_formats(VkPhysicalDevice phy_device, VkSurfaceKHR surface) {
+    ASSERT_NOT_NULL(phy_device);
+    ASSERT_NOT_NULL(surface);
+
+    Result result = { 0 };
+    uint32_t surface_formats_count = 0;
+    DynArray surface_formats = NULL;
+
+    result.error = vkGetPhysicalDeviceSurfaceFormatsKHR(
+        phy_device,
+        surface,
+        &surface_formats_count,
+        NULL
+    );
+    EXPECT_SUCCESS(result);
+
+    result = NEW_DYN_ARRAY(surface_formats_count, VkSurfaceFormatKHR);
+    RESULT_UNWRAP(surface_formats, result);
+
+    result.error = vkGetPhysicalDeviceSurfaceFormatsKHR(
+        phy_device,
+        surface,
+        &surface_formats->count,
+        AS(surface_formats->data, VkSurfaceFormatKHR *)
+    );
+    EXPECT_SUCCESS(result);
+
+    result.object = surface_formats;
+    return result;
+
+failure:
+    free(surface_formats);
+    return result;
+}
+
+VkSurfaceFormatKHR select_surface_format(DynArray surface_formats) {
+    ASSERT_NOT_NULL(surface_formats);
+    assert(surface_formats->count > 0 && "surface format count must be greater than 0");
+
+    VkSurfaceFormatKHR *formats = AS(surface_formats->data, VkSurfaceFormatKHR *);
+    VkSurfaceFormatKHR format = formats[0];
+
+    for (uint32_t i = 0; i < surface_formats->count; ++i) {
+        if (
+            formats[i].format == VK_FORMAT_B8G8R8A8_SRGB
+            && formats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
+        ) {
+            trace(LOG_TARGET, "found SRGB B8G8R8A8 format");
+            format = formats[i];
+            break;
+        }
+    }
+
+    return format;
+}
+
 Result new_swapchain(VkPhysicalDevice phy_device, Renderer renderer) {
     ASSERT_NOT_NULL(phy_device);
     ASSERT_NOT_NULL(renderer);
@@ -101,8 +158,6 @@ Result new_swapchain(VkPhysicalDevice phy_device, Renderer renderer) {
         .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR
     };
     VkSwapchainKHR swapchain;
-    uint32_t surface_formats_count = 0;
-    VkSurfaceFormatKHR *surface_formats = NULL;
     uint32_t present_modes_count = 0;
     VkPresentModeKHR *present_modes = NULL;
     VkPresentModeKHR present_mode = VK_PRESENT_MODE_FIFO_KHR;
@@ -111,28 +166,6 @@ Result new_swapchain(VkPhysicalDevice phy_device, Renderer renderer) {
 
     swapchain_ci.surface = renderer->surface;
     swapchain_ci.minImageCount = renderer->images_count;
-
-    result.error = vkGetPhysicalDeviceSurfaceFormatsKHR(
-        phy_device,
-        renderer->surface,
-        &surface_formats_count,
-        NULL
-    );
-    EXPECT_SUCCESS(result);
-
-    surface_formats = calloc(surface_formats_count, sizeof(VkSurfaceFormatKHR));
-    if (surface_formats == NULL) {
-        result.error = OUT_OF_MEMORY;
-        goto failure;
-    }
-
-    result.error = vkGetPhysicalDeviceSurfaceFormatsKHR(
-        phy_device,
-        renderer->surface,
-        &surface_formats_count,
-        surface_formats
-    );
-    EXPECT_SUCCESS(result);
 
     result.error = vkGetPhysicalDeviceSurfacePresentModesKHR(
         phy_device,
@@ -156,25 +189,13 @@ Result new_swapchain(VkPhysicalDevice phy_device, Renderer renderer) {
     );
     EXPECT_SUCCESS(result);
 
-    uint32_t selected_format = 0;
-    for (uint32_t i = 0; i < surface_formats_count; ++i) {
-        if (
-            surface_formats[i].format == VK_FORMAT_B8G8R8A8_SRGB
-            && surface_formats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
-        ) {
-            trace(LOG_TARGET, "found SRGB B8G8R8A8 format");
-            selected_format = i;
-            break;
-        }
-    }
-
     for (uint32_t i = 0; i < present_modes_count; ++i) {
         if (present_modes[i] == VK_PRESENT_MODE_MAILBOX_KHR)
             present_mode = present_modes[i];
     }
 
-    swapchain_ci.imageFormat = surface_formats[selected_format].format;
-    swapchain_ci.imageColorSpace = surface_formats[selected_format].colorSpace;
+    swapchain_ci.imageFormat = renderer->surface_format.format;
+    swapchain_ci.imageColorSpace = renderer->surface_format.colorSpace;
     swapchain_ci.imageExtent = renderer->image_extent;
     swapchain_ci.imageArrayLayers = 1;
     swapchain_ci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
@@ -212,7 +233,6 @@ Result new_swapchain(VkPhysicalDevice phy_device, Renderer renderer) {
 
 failure:
     free(present_modes);
-    free(surface_formats);
 
     return result;
 }
@@ -683,33 +703,87 @@ Result new_images(Renderer renderer) {
 
     Result result = { 0 };
     uint32_t images_count = 0;
-    VkImage *images = NULL;
+    DynArray images = NULL;
+
+    trace(LOG_TARGET, "getting swapchain images");
 
     result.error = vkGetSwapchainImagesKHR(renderer->gpu, renderer->swapchain, &images_count, NULL);
     EXPECT_SUCCESS(result);
 
-    images = calloc(images_count, sizeof(VkImage));
-    if (images == NULL) {
-        result.error = OUT_OF_MEMORY;
-        goto failure;
-    }
+    result = NEW_DYN_ARRAY(images_count, sizeof(VkImage));
+    RESULT_UNWRAP(images, result);
 
     result.error = vkGetSwapchainImagesKHR(
         renderer->gpu,
         renderer->swapchain,
-        &images_count,
-        images
+        &images->count,
+        AS(images->data, VkImage *)
     );
     EXPECT_SUCCESS(result);
 
     result.object = images;
 
-    trace(LOG_TARGET, "new images created successfully");
+    trace(LOG_TARGET, "swapchain images received successfully");
     return result;
 
 failure:
     free(images);
 
+    return result;
+}
+
+Result new_image_views(Renderer renderer) {
+    ASSERT_NOT_NULL(renderer);
+
+    Result result = { 0 };
+    DynArray image_views = NULL;
+
+    VkImageViewCreateInfo image_view_ci = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        .viewType = VK_IMAGE_VIEW_TYPE_2D,
+    };
+    VkComponentMapping components = {
+        .r = VK_COMPONENT_SWIZZLE_IDENTITY,
+        .g = VK_COMPONENT_SWIZZLE_IDENTITY,
+        .b = VK_COMPONENT_SWIZZLE_IDENTITY,
+        .a = VK_COMPONENT_SWIZZLE_IDENTITY,
+    };
+    VkImageSubresourceRange subresource_range = {
+        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+        .baseArrayLayer = 0,
+        .baseMipLevel = 0,
+        .layerCount = 1,
+        .levelCount = 1
+    };
+
+    trace(LOG_TARGET, "creating new swapchain image views...");
+
+    result = NEW_DYN_ARRAY(renderer->buffers.swapchain_images->count, VkImageView);
+    RESULT_UNWRAP(image_views, result);
+
+    image_view_ci.components = components;
+    image_view_ci.subresourceRange = subresource_range;
+    image_view_ci.format = renderer->surface_format.format;
+
+    for (uint32_t i = 0; i < image_views->count; ++i) {
+        image_view_ci.image = AS(renderer->buffers.swapchain_images->data, VkImage *)[i];
+
+        result.error = vkCreateImageView(
+            renderer->gpu,
+            &image_view_ci,
+            NULL,
+            &AS(image_views->data, VkImageView *)[i]
+        );
+        EXPECT_SUCCESS(result);
+    }
+
+    result.object = image_views;
+    trace(LOG_TARGET, "new swapchain image views created successfully");
+
+    return result;
+
+failure:
+    free(image_views);
     return result;
 }
 
@@ -744,6 +818,17 @@ Result new_renderer(
         result
     );
 
+    DynArray surface_formats = NULL;
+    result = phy_device_surface_formats(phy_device, renderer->surface);
+    RESULT_UNWRAP(
+        surface_formats,
+        result
+    );
+
+    renderer->surface_format = select_surface_format(surface_formats);
+
+    free(surface_formats);
+
     result.error = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
         phy_device,
         renderer->surface,
@@ -775,7 +860,13 @@ Result new_renderer(
 
     result = new_images(renderer);
     RESULT_UNWRAP(
-        renderer->buffers.present_images,
+        renderer->buffers.swapchain_images,
+        result
+    );
+
+    result = new_image_views(renderer);
+    RESULT_UNWRAP(
+        renderer->buffers.swapchain_views,
         result
     );
 
@@ -806,7 +897,8 @@ void drop_renderer(Renderer renderer) {
     if (renderer == NULL)
         return;
 
-    free(renderer->buffers.present_images);
+    free(renderer->buffers.swapchain_views);
+    free(renderer->buffers.swapchain_images);
 
     vkDestroySwapchainKHR(
         renderer->gpu,
