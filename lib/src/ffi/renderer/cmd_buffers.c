@@ -92,11 +92,10 @@ Result new_renderer_cmd_buffers(
     result.object = cmd_buffers;
     trace(LOG_TARGET, "new command buffers created successfully");
 
-    return result;
-
-failure:
-    drop_renderer_cmd_buffers(cmd_buffers);
-    return result;
+    FN_EXIT(result);
+    FN_FAILURE(result, {
+        drop_renderer_cmd_buffers(cmd_buffers);
+    });
 }
 
 void drop_renderer_cmd_buffers(struct RendererCmdBuffers *cmd_buffers) {

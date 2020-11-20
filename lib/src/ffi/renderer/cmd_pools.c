@@ -68,11 +68,11 @@ Result new_renderer_cmd_pools(VkDevice device, struct RendererQueueFamilies *que
     result.object = cmd_pools;
     trace(LOG_TARGET, "new renderer command pools created successfully");
 
-    return result;
+    FN_EXIT(result);
 
-failure:
-    drop_renderer_cmd_pools(cmd_pools);
-    return result;
+    FN_FAILURE(result, {
+        drop_renderer_cmd_pools(cmd_pools);
+    });
 }
 
 void drop_renderer_cmd_pools(struct RendererCmdPools *cmd_pools) {

@@ -9,34 +9,40 @@
     if (___tmp_result.error != SUCCESS) { \
         ___tmp_result.object = NULL; \
         (out_object) = NULL; \
-        goto failure; \
+        goto exit; \
     } \
     else (out_object) = ___tmp_result.object; \
 } while(0)
 
 #define EXPECT_SUCCESS(result) do { \
     if ((result).error != SUCCESS) \
-        goto failure; \
+        goto exit; \
 } while(0)
 
 #define EXPECT_MEM_ALLOC(result) do { \
     Result ___tmp_result = (result); \
     if (___tmp_result.object == NULL) { \
         ___tmp_result.error = OUT_OF_MEMORY; \
-        goto failure; \
+        goto exit; \
     } \
 } while(0)
 
 #define FN_EXIT(result, ...) do { \
 exit: \
+    __VA_ARGS__ \
     Result ___tmp_result = (result); \
     if (___tmp_result.error != SUCCESS) { \
         ___tmp_result.object = NULL; \
         goto failure; \
     } else { \
-        __VA_ARGS__ \
         return ___tmp_result; \
     } \
+} while(0)
+
+#define FN_FORCE_EXIT(result, ...) do { \
+exit: \
+    __VA_ARGS__ \
+    return (result); \
 } while(0)
 
 #define FN_FAILURE(result, ...) do { \

@@ -117,11 +117,11 @@ Result new_renderer_queue_families(
         );
     }
 
-    return result;
+    FN_EXIT(result);
 
-failure:
-    free(family_props);
-    return result;
+    FN_FAILURE(result, {
+        free(family_props);
+    });
 }
 
 bool is_same_queue_families(struct RendererQueueFamilies *families) {
@@ -174,8 +174,7 @@ Result new_renderer_queues(
 
     trace(LOG_TARGET, "new renderer queues created successfully");
 
-failure:
-    return result;
+    FN_FORCE_EXIT(result);
 }
 
 void drop_renderer_queues(struct RendererQueues *queues) {

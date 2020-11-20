@@ -271,20 +271,19 @@ Result new_vk_instance() {
         trace(LOG_TARGET, "new vulkan instance successfully created");
     }
 
-    return result;
+    FN_EXIT(result);
+    FN_FAILURE(result, {
+        if (instance->vk_handle != NULL)
+            drop_vk_instance(instance);
+        else
+            free(instance);
 
-failure:
-    if (instance->vk_handle != NULL)
-        drop_vk_instance(instance);
-    else
-        free(instance);
-
-    error(
-        LOG_TARGET,
-        "instance creation failed: error = %d",
-        result.error
-    );
-    return result;
+        error(
+            LOG_TARGET,
+            "instance creation failed: error = %d",
+            result.error
+        );
+    });
 }
 
 VkInstance vk_handle(VulkanInstance instance) {

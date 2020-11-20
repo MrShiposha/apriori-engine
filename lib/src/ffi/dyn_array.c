@@ -10,6 +10,5 @@ Result ___apriori_impl_new_dyn_array(uint32_t count, size_t element_size) {
     array->count = count;
     array->data = AS(array, Bytes) + sizeof(DynArrayT);
 
-failure:
-    return result;
+    FN_FORCE_EXIT(result);
 }

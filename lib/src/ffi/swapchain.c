@@ -172,14 +172,13 @@ Result new_swapchain(struct SwapchainCreateParams *params) {
     result.object = swapchain;
     trace(LOG_TARGET, "new swapchain created successfully");
 
-    free(present_modes);
-    return result;
+    FN_EXIT(result, {
+        free(present_modes);
+    });
 
-failure:
-    free(present_modes);
-    drop_swapchain(swapchain);
-
-    return result;
+    FN_FAILURE(result, {
+        drop_swapchain(swapchain);
+    });
 }
 
 void drop_swapchain(struct Swapchain *swapchain) {

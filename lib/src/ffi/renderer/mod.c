@@ -122,11 +122,12 @@ Result phy_device_surface_formats(VkPhysicalDevice phy_device, VkSurfaceKHR surf
     EXPECT_SUCCESS(result);
 
     result.object = surface_formats;
-    return result;
 
-failure:
-    free(surface_formats);
-    return result;
+    FN_EXIT(result);
+
+    FN_FAILURE(result, {
+        free(surface_formats);
+    });
 }
 
 VkSurfaceFormatKHR select_surface_format(DynArray surface_formats) {
@@ -339,8 +340,7 @@ Result new_gpu(
 
     trace(LOG_TARGET, "new GPU object created successfully");
 
-failure:
-    return result;
+    FN_FORCE_EXIT(result);
 }
 
 Result new_renderer(
@@ -351,6 +351,9 @@ Result new_renderer(
 ) {
     Result result = { 0 };
     struct RendererQueueFamilies *families = NULL;
+    uint32_t queues_cis_count = 0;
+    VkDeviceQueueCreateInfo queues_cis[2] = { 0 };
+    DynArray surface_formats = NULL;
     struct SwapchainCreateParams swapchain_params = { 0 };
 
     trace(
@@ -379,9 +382,6 @@ Result new_renderer(
         result
     );
 
-    uint32_t queues_cis_count = 0;
-    VkDeviceQueueCreateInfo queues_cis[2] = { 0 };
-
     fill_renderer_queues_create_info(families, queues_cis, &queues_cis_count);
 
     result = new_gpu(phy_device, families, queues_cis, queues_cis_count);
@@ -403,7 +403,6 @@ Result new_renderer(
     swapchain_params.families = families;
     swapchain_params.surface = renderer->surface;
 
-    DynArray surface_formats = NULL;
     result = phy_device_surface_formats(phy_device, renderer->surface);
     RESULT_UNWRAP(
         surface_formats,
@@ -411,8 +410,6 @@ Result new_renderer(
     );
 
     swapchain_params.surface_format = select_surface_format(surface_formats);
-
-    free(surface_formats);
 
     result = new_swapchain(&swapchain_params);
     RESULT_UNWRAP(
@@ -444,15 +441,14 @@ Result new_renderer(
         "new renderer successfully created"
     );
 
-    drop_renderer_queue_families(families);
+    FN_EXIT(result, {
+        drop_renderer_queue_families(families);
+        free(surface_formats);
+    });
 
-    return result;
-
-failure:
-    drop_renderer_queue_families(families);
-    drop_renderer(result.object);
-
-    return result;
+    FN_FAILURE(result, {
+        drop_renderer(result.object);
+    });
 }
 
 void drop_renderer(Renderer renderer) {
