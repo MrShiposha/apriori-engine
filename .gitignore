@@ -1,4 +1,4 @@
 **/target
-lib/src/ffi/gpu/**
+lib/src/ffi/generated/**
 lib/src/ffi/mod.rs
 .vscode/launch.json

@@ -12,7 +12,12 @@ use {
         ResolvedInclude
     },
     convert_case::{Case, Casing},
-    crate::{Result, Error},
+    crate::{
+        Result,
+        Error,
+        GENERATED_FILE_DIR,
+        ffi::FOREIGN_FN_IFACE_DIR_NAME
+    },
 };
 
 const SHADER_DIR_NAME: &'static str = "gpu";
@@ -112,13 +117,14 @@ fn compile_shader(src_path: &PathBuf, file_path: &Path) -> Result<()> {
         .expect("shader file name str");
 
     let shader_ffi_dir = src_path
-        .join("ffi")
+        .join(FOREIGN_FN_IFACE_DIR_NAME)
+        .join(GENERATED_FILE_DIR)
         .join(SHADER_DIR_NAME);
 
     let shader_ffi_base = shader_ffi_dir.join(file_name);
 
     if !shader_ffi_dir.exists() {
-        fs::create_dir(shader_ffi_dir)?;
+        fs::create_dir_all(shader_ffi_dir)?;
     }
 
     let mut shader_ffi_header = shader_ffi_base.clone();

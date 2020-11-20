@@ -3,6 +3,8 @@ use std::{path::PathBuf, io, fmt, env};
 pub mod shader;
 pub mod ffi;
 
+pub const GENERATED_FILE_DIR: &'static str = "generated";
+
 #[derive(Debug)]
 pub enum Error {
     Io(io::Error),
