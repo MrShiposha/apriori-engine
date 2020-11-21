@@ -6,12 +6,12 @@
 
 #include "ffi/core/log.h"
 
-#include "ffi/export/vulkan_instance.h"
-#include "vulkan_instance.h"
+#include "mod.h"
+#include "ffi/core/vulkan_instance/vulkan_instance.impl.h"
 #include "ffi/core/app_info.h"
 
 #include "ffi/util/mod.h"
-#include "ffi/export/def.h"
+#include "ffi/core/def.h"
 
 #define LOG_TARGET "FFI/VulkanInstance"
 

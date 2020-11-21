@@ -2,7 +2,9 @@
 #include <stdlib.h>
 
 #include "vk_debug_reporter.h"
-#include "log.h"
+#include "vulkan_instance.impl.h"
+
+#include "ffi/core/log.h"
 
 #define LOG_TARGET "FFI/DebugReporter"
 

@@ -1,5 +1,5 @@
-#ifndef ___APRIORI2_DEF_H___
-#define ___APRIORI2_DEF_H___
+#ifndef ___APRIORI2_CORE_DEF_H___
+#define ___APRIORI2_CORE_DEF_H___
 
 typedef void *Handle;
 
@@ -13,4 +13,4 @@ typedef Byte *Bytes;
 
 #define AS(x, ty) ((ty)(x))
 
-#endif // ___APRIORI2_DEF_H___
+#endif // ___APRIORI2_CORE_DEF_H___

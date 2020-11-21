@@ -1,9 +1,9 @@
-#ifndef ___APRIORI2_CORE_DEBUG_REPORTER_H___
-#define ___APRIORI2_CORE_DEBUG_REPORTER_H___
+#ifndef ___APRIORI2_CORE_VULKAN_INSTANCE_DEBUG_REPORTER_H___
+#define ___APRIORI2_CORE_VULKAN_INSTANCE_DEBUG_REPORTER_H___
 
 #include <vulkan/vulkan.h>
-#include "ffi/export/result.h"
-#include "ffi/export/vulkan_instance.h"
+#include "ffi/core/result.h"
+#include "mod.h"
 
 typedef struct DebugReporter {
     VulkanInstance instance;
@@ -14,4 +14,4 @@ Result new_debug_reporter(VulkanInstance instance, PFN_vkDebugReportCallbackEXT 
 
 void drop_debug_reporter(DebugReporter *debug_reporter);
 
-#endif // ___APRIORI2_CORE_DEBUG_REPORTER_H___
+#endif // ___APRIORI2_CORE_VULKAN_INSTANCE_DEBUG_REPORTER_H___

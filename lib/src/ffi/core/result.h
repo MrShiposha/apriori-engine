@@ -1,5 +1,5 @@
-#ifndef ___APRIORI2_RESULT_H___
-#define ___APRIORI2_RESULT_H___
+#ifndef ___APRIORI2_CORE_RESULT_H___
+#define ___APRIORI2_CORE_RESULT_H___
 
 #include "error.h"
 #include "def.h"
@@ -57,4 +57,4 @@ typedef struct Result {
     Handle object;
 } Result;
 
-#endif // ___APRIORI2_RESULT_H___
+#endif // ___APRIORI2_CORE_RESULT_H___

@@ -5,12 +5,12 @@
 #include <stdbool.h>
 #include <vulkan/vulkan.h>
 
-#include "ffi/export/renderer.h"
 #include "mod.h"
+#include "renderer.impl.h"
 
-#include "ffi/export/def.h"
-#include "ffi/export/error.h"
-#include "ffi/core/vulkan_instance.h"
+#include "ffi/core/def.h"
+#include "ffi/core/error.h"
+#include "ffi/core/vulkan_instance/vulkan_instance.impl.h"
 #include "ffi/core/log.h"
 #include "ffi/os/surface.h"
 #include "ffi/util/mod.h"

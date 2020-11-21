@@ -1,4 +1,4 @@
-#include "ffi/export/error.h"
+#include "ffi/core/error.h"
 
 const char *error_to_string(Apriori2Error error) {
     uint32_t general_error = (uint32_t)error;

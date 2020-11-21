@@ -7,7 +7,7 @@ use {
 };
 
 pub const FOREIGN_FN_IFACE_DIR_NAME: &'static str = "ffi";
-const RUST_VISIBLE_DIR: &'static str = "export";
+const RUST_VISIBLE_FILE_EXT: &'static str = ".rs.h";
 const VULKAN_ITEM_REGEX: &'static str = r"(PFN_)?((vk)|(Vk)|(VK)).*";
 
 pub fn process_c_srcs(dir: &Path, include_dirs: &Vec<PathBuf>, cc_build: &mut cc::Build) -> Result<()> {
@@ -72,19 +72,10 @@ fn process_ffi_dir(dir: &Path, mut builder: bindgen::Builder, cc_build: &mut cc:
             bindings_count += subdir_bindins_count;
         } else if let Some(ext) = path.extension() {
             let file_name = path.file_stem()
-                .ok_or(Error::FilenameExpected(path.clone().into()))?;
-
-            let parent_dir = path.parent()
-                .ok_or(Error::ParentDirExpected(path.clone()))?;
-
-            let parent_dir_name = parent_dir
-                .file_stem()
-                .ok_or(Error::FilenameExpected(parent_dir.into()))?
+                .ok_or(Error::FilenameExpected(path.clone().into()))?
                 .to_string_lossy();
 
-            if file_name.to_string_lossy().ends_with("shader") {
-                continue;
-            } else if parent_dir_name == RUST_VISIBLE_DIR && ext == h_ext {
+            if file_name.ends_with(RUST_VISIBLE_FILE_EXT) && ext == h_ext {
                 builder = builder.header(path.to_string_lossy());
                 bindings_count += 1;
             }

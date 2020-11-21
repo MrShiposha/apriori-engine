@@ -1,5 +1,5 @@
-#ifndef ___APRIORI2_ERROR_H___
-#define ___APRIORI2_ERROR_H___
+#ifndef ___APRIORI2_CORE_ERROR_H___
+#define ___APRIORI2_CORE_ERROR_H___
 
 #include <stdint.h>
 
@@ -9,7 +9,7 @@
 
 typedef enum Apriori2Error {
     SUCCESS = VK_SUCCESS,
-    OUT_OF_MEMORY = -APRIORI2_ERROR_NUM, // TODO: description (See Vulkan spec VkResult)
+    OUT_OF_MEMORY = -APRIORI2_ERROR_NUM,
     DEBUG_REPORTER_CREATION,
     LAYERS_NOT_FOUND,
     EXTENSIONS_NOT_FOUND,
@@ -20,4 +20,4 @@ typedef enum Apriori2Error {
 
 const char *error_to_string(Apriori2Error error);
 
-#endif // ___APRIORI2_ERROR_H___
+#endif // ___APRIORI2_CORE_ERROR_H___

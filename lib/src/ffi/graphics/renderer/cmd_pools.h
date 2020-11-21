@@ -4,7 +4,7 @@
 #include <vulkan/vulkan.h>
 #include "queues.h"
 
-#include "ffi/export/result.h"
+#include "ffi/core/result.h"
 
 struct RendererCmdPools {
     VkDevice device;

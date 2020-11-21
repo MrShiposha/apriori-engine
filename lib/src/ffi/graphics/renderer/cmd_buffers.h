@@ -2,7 +2,7 @@
 #define ___APRIORI2_GRAPHICS_RENDERER_CMD_BUFFERS_H___
 
 #include <vulkan/vulkan.h>
-#include "ffi/export/result.h"
+#include "ffi/core/result.h"
 #include "queues.h"
 #include "cmd_pools.h"
 

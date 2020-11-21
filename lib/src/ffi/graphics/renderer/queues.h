@@ -4,7 +4,7 @@
 #include <vulkan/vulkan.h>
 #include <stdbool.h>
 
-#include "ffi/export/result.h"
+#include "ffi/core/result.h"
 
 // Indices inside the queue family
 #define RENDERER_QUEUE_GRAPHICS_IDX 0
