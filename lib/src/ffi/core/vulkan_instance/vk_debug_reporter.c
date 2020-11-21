@@ -22,7 +22,7 @@ Result new_debug_reporter(VulkanInstance instance, PFN_vkDebugReportCallbackEXT 
         vk_handle(instance),
         "vkCreateDebugReportCallbackEXT"
     );
-    UNWRAP_MEM_ALLOC(result, (Handle)vkCreateDebugReportCallbackEXT);
+    UNWRAP_NOT_NULL(result, VK_PROC_NOT_FOUND, (Handle)vkCreateDebugReportCallbackEXT);
 
     VkDebugReportCallbackCreateInfoEXT debug_report_ci = {
         .sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT,

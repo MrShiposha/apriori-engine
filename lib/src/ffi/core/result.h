@@ -21,13 +21,14 @@
         goto exit; \
 } while(0)
 
-#define UNWRAP_MEM_ALLOC(result, ptr) \
+#define UNWRAP_NOT_NULL(result, error_value, ptr) \
     (((ptr) == NULL) ? \
-        ((result).error = OUT_OF_MEMORY, (result).object = NULL) \
+        ((result).error = (error_value), (result).object = NULL) \
         : ((result).error = SUCCESS, (result).object = (ptr)) \
     ); EXPECT_SUCCESS(result)
 
-#define ALLOC_WITH(result, alloc_fn, ...) UNWRAP_MEM_ALLOC(result, (alloc_fn)(__VA_ARGS__))
+#define ALLOC_WITH(result, alloc_fn, ...) \
+    UNWRAP_NOT_NULL(result, OUT_OF_MEMORY, (alloc_fn)(__VA_ARGS__))
 
 #define ALLOC_ARRAY(result, ty, count) ALLOC_WITH(result, calloc, count, sizeof(ty))
 
