@@ -10,6 +10,8 @@ pub const FOREIGN_FN_IFACE_DIR_NAME: &'static str = "ffi";
 const RUST_VISIBLE_FILE_EXT: &'static str = ".rs.h";
 const VULKAN_ITEM_REGEX: &'static str = r"(PFN_)?((vk)|(Vk)|(VK)).*";
 
+// TODO: panic if found several files with the same name
+
 pub fn process_c_srcs(dir: &Path, include_dirs: &Vec<PathBuf>, cc_build: &mut cc::Build) -> Result<()> {
     for entry in fs::read_dir(dir)? {
         let entry = entry?;
