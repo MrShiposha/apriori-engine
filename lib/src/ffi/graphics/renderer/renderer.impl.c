@@ -15,7 +15,7 @@
 #include "ffi/os/surface.h"
 #include "ffi/util/mod.h"
 
-#define LOG_TARGET "FFI/Renderer"
+#define LOG_TARGET LOG_STRUCT_TARGET(Renderer)
 #define CI_GRAPHICS_IDX 0
 #define CI_PRESENT_IDX 1
 
@@ -38,7 +38,7 @@ uint32_t rate_phy_device_suitability(VkPhysicalDeviceProperties *dev_props) {
 
     trace(
         LOG_TARGET,
-        "\t\"%s\" physical device suitability score: %d",
+        LOG_GROUP(struct, "\t\"%s\" physical device suitability score: %d"),
         dev_props->deviceName, score
     );
 
@@ -54,7 +54,7 @@ VkPhysicalDevice select_phy_device(VulkanInstance instance) {
 
     trace(
         LOG_TARGET,
-        "selecting the most suitable physical device..."
+        LOG_GROUP(struct, "selecting the most suitable physical device...")
     );
 
     for (uint32_t i = 0; i < instance->phy_device_count; ++i) {
@@ -84,7 +84,7 @@ VkPhysicalDevice select_phy_device(VulkanInstance instance) {
 
     trace(
         LOG_TARGET,
-        "the most suitable physical device: \"%s\" (score: %d)",
+        LOG_GROUP(struct, "the most suitable physical device: \"%s\" (score: %d)"),
         winner_device_name, score
     );
 
@@ -139,7 +139,7 @@ VkSurfaceFormatKHR select_surface_format(DynArray surface_formats) {
             formats[i].format == VK_FORMAT_B8G8R8A8_SRGB
             && formats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
         ) {
-            trace(LOG_TARGET, "found SRGB B8G8R8A8 format");
+            trace(LOG_TARGET, LOG_GROUP(struct, "found SRGB B8G8R8A8 format"));
             format = formats[i];
             break;
         }
@@ -159,7 +159,7 @@ void fill_renderer_queues_create_info(
 
     static float priorities[2] = { 0 };
 
-    trace(LOG_TARGET, "filling renderer queues create infos...");
+    trace(LOG_TARGET, LOG_GROUP(struct, "filling renderer queues create infos..."));
 
     priorities[CI_GRAPHICS_IDX] = 1.0f;
     priorities[CI_PRESENT_IDX] = 0.75f;
@@ -193,12 +193,12 @@ Result check_all_device_layers_available(VkPhysicalDevice device, const char **l
     VkLayerProperties *layer_props = NULL;
     uint32_t property_count = 0;
 
-    trace(LOG_TARGET, "checking requested validation layers");
+    trace(LOG_TARGET, LOG_GROUP(struct, "checking requested validation layers"));
 
     result.error = vkEnumerateDeviceLayerProperties(device, &property_count, NULL);
     EXPECT_SUCCESS(result);
 
-    trace(LOG_TARGET, "available validation layers count: %d", property_count);
+    trace(LOG_TARGET, LOG_GROUP(struct, "available validation layers count: %d"), property_count);
 
     layer_props = ALLOC_ARRAY_UNINIT(result, VkLayerProperties, property_count);
 
@@ -216,7 +216,7 @@ Result check_all_device_layers_available(VkPhysicalDevice device, const char **l
             result.error = LAYERS_NOT_FOUND;
             error(LOG_TARGET, "layer \"%s\" is not found", layers[i]);
         } else {
-            trace(LOG_TARGET, "\tvalidation layer \"%s\": OK", layers[i]);
+            trace(LOG_TARGET, LOG_GROUP(struct_op, "validation layer \"%s\": OK"), layers[i]);
         }
     }
 
@@ -234,12 +234,12 @@ Result check_all_device_extensions_available(
     VkExtensionProperties *extension_props = NULL;
     uint32_t property_count = 0;
 
-    trace(LOG_TARGET, "checking requested extensions");
+    trace(LOG_TARGET, LOG_GROUP(struct, "checking requested extensions"));
 
     result.error = vkEnumerateDeviceExtensionProperties(phy_device, NULL, &property_count, NULL);
     EXPECT_SUCCESS(result);
 
-    trace(LOG_TARGET, "available extension count: %d", property_count);
+    trace(LOG_TARGET, LOG_GROUP(struct, "available extension count: %d"), property_count);
 
     extension_props = ALLOC_ARRAY_UNINIT(result, VkLayerProperties, property_count);
 
@@ -257,7 +257,7 @@ Result check_all_device_extensions_available(
             result.error = EXTENSIONS_NOT_FOUND;
             error(LOG_TARGET, "extension \"%s\" is not found", extensions[i]);
         } else {
-            trace(LOG_TARGET, "\textension \"%s\": OK", extensions[i]);
+            trace(LOG_TARGET, LOG_GROUP(struct_op, "extension \"%s\": OK"), extensions[i]);
         }
     }
 
@@ -415,9 +415,9 @@ Result new_renderer(
 
     result.object = renderer;
 
-    trace(
+    info(
         LOG_TARGET,
-        "new renderer successfully created"
+        "new renderer created successfully"
     );
 
     FN_EXIT(result, {

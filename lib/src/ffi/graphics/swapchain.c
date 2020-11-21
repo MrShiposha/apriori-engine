@@ -4,7 +4,7 @@
 #include "ffi/core/log.h"
 #include "renderer/mod.h"
 
-#define LOG_TARGET "Swapchain"
+#define LOG_TARGET LOG_STRUCT_TARGET(Swapchain)
 
 Result new_swapchain(struct SwapchainCreateParams *params) {
     ASSERT_NOT_NULL(params);
@@ -46,7 +46,7 @@ Result new_swapchain(struct SwapchainCreateParams *params) {
 
     struct Swapchain *swapchain = ALLOC(result, struct Swapchain);
 
-    trace(LOG_TARGET, "\tgetting surface capabilities...");
+    trace(LOG_TARGET, LOG_GROUP(struct, "getting surface capabilities..."));
     VkSurfaceCapabilitiesKHR surface_caps = { 0 };
     result.error = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
         params->phy_device,
@@ -55,7 +55,7 @@ Result new_swapchain(struct SwapchainCreateParams *params) {
     );
     EXPECT_SUCCESS(result);
 
-    trace(LOG_TARGET, "\tselecting present mode...");
+    trace(LOG_TARGET, LOG_GROUP(struct, "selecting present mode..."));
     result.error = vkGetPhysicalDeviceSurfacePresentModesKHR(
         params->phy_device,
         params->surface,
@@ -76,13 +76,13 @@ Result new_swapchain(struct SwapchainCreateParams *params) {
 
     for (uint32_t i = 0; i < present_modes_count; ++i) {
         if (present_modes[i] == VK_PRESENT_MODE_MAILBOX_KHR) {
-            trace(LOG_TARGET, "\tfound MAILBOX present mode");
+            trace(LOG_TARGET, LOG_GROUP(struct_op, "found MAILBOX present mode"));
             present_mode = present_modes[i];
             break;
         }
     }
 
-    trace(LOG_TARGET, "\tpresent mode selected");
+    trace(LOG_TARGET, LOG_GROUP(struct, "present mode selected"));
 
     avg_image_count = (
         surface_caps.minImageCount + surface_caps.maxImageCount
@@ -117,7 +117,7 @@ Result new_swapchain(struct SwapchainCreateParams *params) {
     result.object = swapchain;
     EXPECT_SUCCESS(result);
 
-    trace(LOG_TARGET, "\tgetting swapchain images...");
+    trace(LOG_TARGET, LOG_GROUP(struct, "getting swapchain images..."));
     result.error = vkGetSwapchainImagesKHR(
         params->device,
         swapchain->vk_handle,
@@ -138,9 +138,9 @@ Result new_swapchain(struct SwapchainCreateParams *params) {
     );
     EXPECT_SUCCESS(result);
 
-    trace(LOG_TARGET, "\tswapchain images received successufully");
+    trace(LOG_TARGET, LOG_GROUP(struct, "swapchain images received successufully"));
 
-    trace(LOG_TARGET, "\tcreating new swapchain image views...");
+    trace(LOG_TARGET, LOG_GROUP(struct, "creating new swapchain image views..."));
 
     swapchain->views = ALLOC_ARRAY_UNINIT(result, VkImageView, swapchain->image_count);
 
@@ -160,7 +160,7 @@ Result new_swapchain(struct SwapchainCreateParams *params) {
         EXPECT_SUCCESS(result);
     }
 
-    trace(LOG_TARGET, "\tnew swapchain image views created successfully");
+    trace(LOG_TARGET, LOG_GROUP(struct, "new swapchain image views created successfully"));
 
     result.object = swapchain;
     info(LOG_TARGET, "new swapchain created successfully");

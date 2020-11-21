@@ -65,7 +65,8 @@ pub fn project_build(
 
     if cfg!(target_os = "windows") {
         cc_build.define("___windows___", None)
-            .define("VK_USE_PLATFORM_WIN32_KHR", None);
+            .define("VK_USE_PLATFORM_WIN32_KHR", None)
+            .flag("/std:c11");
     } else if cfg!(target_os = "macos") {
         cc_build.define("___macos___", None)
             .define("VK_USE_PLATFORM_MACOS_MVK", None);

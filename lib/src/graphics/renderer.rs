@@ -37,7 +37,7 @@ impl Renderer {
 
         log::trace! {
             target: Self::LOG_TARGET,
-            "new renderer successfully created"
+            "new renderer created successfully"
         }
 
         Ok(renderer)

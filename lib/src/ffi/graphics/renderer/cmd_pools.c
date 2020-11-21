@@ -2,7 +2,9 @@
 #include "ffi/util/mod.h"
 #include "ffi/core/log.h"
 
-#define LOG_TARGET "Renderer/Command pools"
+#define LOG_TARGET LOG_SUB_TARGET( \
+    LOG_STRUCT_TARGET(Renderer), LOG_STRUCT_TARGET(RendererCmdPools) \
+)
 
 Result new_command_pool(VkDevice device, uint32_t queue_family_index) {
     ASSERT_NOT_NULL(device);

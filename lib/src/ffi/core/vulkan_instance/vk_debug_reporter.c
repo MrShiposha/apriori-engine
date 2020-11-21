@@ -6,7 +6,7 @@
 
 #include "ffi/core/log.h"
 
-#define LOG_TARGET "FFI/DebugReporter"
+#define LOG_TARGET LOG_STRUCT_TARGET(DebugReporter)
 
 Result new_debug_reporter(VulkanInstance instance, PFN_vkDebugReportCallbackEXT callback) {
     Result result = { 0 };
@@ -42,6 +42,8 @@ Result new_debug_reporter(VulkanInstance instance, PFN_vkDebugReportCallbackEXT 
         NULL,
         &reporter->callback
     );
+
+    info(LOG_TARGET, "new debug reporter created successfully");
 
     FN_EXIT(result);
 

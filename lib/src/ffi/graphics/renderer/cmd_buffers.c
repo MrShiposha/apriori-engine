@@ -2,7 +2,9 @@
 #include "ffi/util/mod.h"
 #include "ffi/core/log.h"
 
-#define LOG_TARGET "Renderer/Command buffers"
+#define LOG_TARGET LOG_SUB_TARGET( \
+    LOG_STRUCT_TARGET(Renderer), LOG_STRUCT_TARGET(RendererCmdBuffers) \
+)
 
 Result new_command_buffer(VkDevice device, VkCommandPool cmd_pool, uint32_t buffer_count) {
     ASSERT_NOT_NULL(device);

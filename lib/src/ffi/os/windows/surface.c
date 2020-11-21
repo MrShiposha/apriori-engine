@@ -3,7 +3,9 @@
 #include "ffi/os/surface.h"
 #include "ffi/core/log.h"
 
-#define LOG_TARGET "Renderer/Surface"
+#define LOG_TARGET LOG_SUB_TARGET( \
+    LOG_STRUCT_TARGET(Renderer), LOG_STRUCT_TARGET(Surface) \
+)
 
 Result new_surface(
     VkInstance instance,

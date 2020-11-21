@@ -13,7 +13,7 @@
 #include "ffi/util/mod.h"
 #include "ffi/core/def.h"
 
-#define LOG_TARGET "FFI/VulkanInstance"
+#define LOG_TARGET LOG_STRUCT_TARGET(VulkanInstance)
 
 #ifdef ___debug___
     VKAPI_ATTR VkBool32 VKAPI_CALL debug_report(
@@ -65,12 +65,12 @@ Result check_all_layers_available(const char **layers, uint32_t num_layers) {
     VkLayerProperties *layer_props = NULL;
     uint32_t property_count = 0;
 
-    trace(LOG_TARGET, "checking requested validation layers");
+    trace(LOG_TARGET, LOG_GROUP(struct, "checking requested validation layers"));
 
     result.error = vkEnumerateInstanceLayerProperties(&property_count, NULL);
     EXPECT_SUCCESS(result);
 
-    trace(LOG_TARGET, "available validation layers count: %d", property_count);
+    trace(LOG_TARGET, LOG_GROUP(struct, "available validation layers count: %d"), property_count);
 
     layer_props = ALLOC_ARRAY_UNINIT(result, VkLayerProperties, property_count);
 
@@ -88,7 +88,7 @@ Result check_all_layers_available(const char **layers, uint32_t num_layers) {
             result.error = LAYERS_NOT_FOUND;
             error(LOG_TARGET, "layer \"%s\" is not found", layers[i]);
         } else {
-            trace(LOG_TARGET, "\tvalidation layer \"%s\": OK", layers[i]);
+            trace(LOG_TARGET, LOG_GROUP(struct_op, "validation layer \"%s\": OK"), layers[i]);
         }
     }
 
@@ -102,12 +102,12 @@ Result check_all_extensions_available(const char **extensions, uint32_t num_exte
     VkExtensionProperties *extension_props = NULL;
     uint32_t property_count = 0;
 
-    trace(LOG_TARGET, "checking requested extensions");
+    trace(LOG_TARGET, LOG_GROUP(struct, "checking requested extensions"));
 
     result.error = vkEnumerateInstanceExtensionProperties(NULL, &property_count, NULL);
     EXPECT_SUCCESS(result);
 
-    trace(LOG_TARGET, "available extension count: %d", property_count);
+    trace(LOG_TARGET, LOG_GROUP(struct, "available extension count: %d"), property_count);
 
     extension_props = ALLOC_ARRAY_UNINIT(result, VkLayerProperties, property_count);
 
@@ -125,7 +125,7 @@ Result check_all_extensions_available(const char **extensions, uint32_t num_exte
             result.error = EXTENSIONS_NOT_FOUND;
             error(LOG_TARGET, "extension \"%s\" is not found", extensions[i]);
         } else {
-            trace(LOG_TARGET, "\textension \"%s\": OK", extensions[i]);
+            trace(LOG_TARGET, LOG_GROUP(struct_op, "extension \"%s\": OK"), extensions[i]);
         }
     }
 
@@ -137,7 +137,7 @@ Result check_all_extensions_available(const char **extensions, uint32_t num_exte
 Result init_phy_devices(VulkanInstance instance) {
     Result result = { 0 };
 
-    trace(LOG_TARGET, "initializing physical devices...");
+    trace(LOG_TARGET, LOG_GROUP(struct, "initializing physical devices..."));
 
     result.error = vkEnumeratePhysicalDevices(
         instance->vk_handle,
@@ -155,7 +155,7 @@ Result init_phy_devices(VulkanInstance instance) {
     );
     EXPECT_SUCCESS(result);
 
-    trace(LOG_TARGET, "physical devices successfully initialized");
+    trace(LOG_TARGET, LOG_GROUP(struct, "physical devices successfully initialized"));
 
     FN_FORCE_EXIT(result);
 }
@@ -175,7 +175,7 @@ Result new_vk_instance() {
 
     trace(
         LOG_TARGET,
-        "application name: %s, application version: %d",
+        LOG_GROUP(struct, "application name: %s, application version: %d"),
         app_info.pApplicationName, app_info.applicationVersion
     );
 
@@ -239,9 +239,7 @@ Result new_vk_instance() {
 #   endif // ___debug___
 
     result.object = instance;
-    if (result.error == SUCCESS) {
-        trace(LOG_TARGET, "new vulkan instance successfully created");
-    }
+    info(LOG_TARGET, "new vulkan instance created successfully");
 
     FN_EXIT(result);
 

@@ -22,7 +22,7 @@ impl VulkanInstance {
 
         log::info! {
             target: Self::LOG_TARGET,
-            "new vulkan instance successfully created"
+            "new vulkan instance created successfully"
         }
 
         Ok(instance)
