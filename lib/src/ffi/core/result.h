@@ -1,6 +1,8 @@
 #ifndef ___APRIORI2_CORE_RESULT_H___
 #define ___APRIORI2_CORE_RESULT_H___
 
+#include <stdlib.h>
+
 #include "error.h"
 #include "def.h"
 
@@ -19,13 +21,21 @@
         goto exit; \
 } while(0)
 
-#define EXPECT_MEM_ALLOC(result) do { \
-    Result ___tmp_result = (result); \
-    if (___tmp_result.object == NULL) { \
-        ___tmp_result.error = OUT_OF_MEMORY; \
-        goto exit; \
-    } \
-} while(0)
+#define UNWRAP_MEM_ALLOC(result, ptr) \
+    (((ptr) == NULL) ? \
+        ((result).error = OUT_OF_MEMORY, (result).object = NULL) \
+        : ((result).error = SUCCESS, (result).object = (ptr)) \
+    ); EXPECT_SUCCESS(result)
+
+#define ALLOC_WITH(result, alloc_fn, ...) UNWRAP_MEM_ALLOC(result, (alloc_fn)(__VA_ARGS__))
+
+#define ALLOC_ARRAY(result, ty, count) ALLOC_WITH(result, calloc, count, sizeof(ty))
+
+#define ALLOC(result, ty) ALLOC_ARRAY(result, ty, 1)
+
+#define ALLOC_ARRAY_UNINIT(result, ty, count) ALLOC_WITH(result, malloc, count * sizeof(ty))
+
+#define ALLOC_UNINIT(result, ty) ALLOC_ARRAY_UNINIT(result, ty, 1)
 
 #define FN_EXIT(result, ...) do { \
 exit: \

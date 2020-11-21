@@ -45,9 +45,7 @@ Result new_renderer_cmd_buffers(
     Result result = { 0 };
 
     trace(LOG_TARGET, "creating new command buffers...");
-    struct RendererCmdBuffers *cmd_buffers = calloc(1, sizeof(struct RendererCmdBuffers));
-    result.object = cmd_buffers;
-    EXPECT_MEM_ALLOC(result);
+    struct RendererCmdBuffers *cmd_buffers = ALLOC(result, struct RendererCmdBuffers);
 
     cmd_buffers->device = device;
     cmd_buffers->buffers_count = buffers_count;

@@ -200,12 +200,10 @@ Result check_all_device_layers_available(VkPhysicalDevice device, const char **l
 
     trace(LOG_TARGET, "available validation layers count: %d", property_count);
 
-    layer_props = malloc(property_count * sizeof(VkLayerProperties));
-    result.object = layer_props;
-    EXPECT_MEM_ALLOC(result);
+    layer_props = ALLOC_ARRAY_UNINIT(result, VkLayerProperties, property_count);
 
     result.error = vkEnumerateDeviceLayerProperties(device, &property_count, layer_props);
-    EXPECT_MEM_ALLOC(result);
+    EXPECT_SUCCESS(result);
 
     for (uint32_t i = 0, j = 0; i < num_layers; ++i) {
         for (j = 0; j < property_count; ++j) {
@@ -243,9 +241,7 @@ Result check_all_device_extensions_available(
 
     trace(LOG_TARGET, "available extension count: %d", property_count);
 
-    extension_props = malloc(property_count * sizeof(VkLayerProperties));
-    result.object = extension_props;
-    EXPECT_MEM_ALLOC(result);
+    extension_props = ALLOC_ARRAY_UNINIT(result, VkLayerProperties, property_count);
 
     result.error = vkEnumerateDeviceExtensionProperties(phy_device, NULL, &property_count, extension_props);
     EXPECT_SUCCESS(result);

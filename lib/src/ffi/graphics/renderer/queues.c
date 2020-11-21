@@ -19,9 +19,7 @@ Result new_renderer_queue_families(
         "creating new renderer queue families..."
     );
 
-    struct RendererQueueFamilies *families = calloc(1, sizeof(struct RendererQueueFamilies));
-    result.object = families;
-    EXPECT_MEM_ALLOC(result);
+    struct RendererQueueFamilies *families = ALLOC(result, struct RendererQueueFamilies);
 
     uint32_t queue_family_count = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(
@@ -36,11 +34,7 @@ Result new_renderer_queue_families(
         queue_family_count
     );
 
-    family_props = calloc(
-        queue_family_count, sizeof(VkQueueFamilyProperties)
-    );
-    result.object = family_props;
-    EXPECT_MEM_ALLOC(result);
+    family_props = ALLOC_ARRAY_UNINIT(result, VkQueueFamilyProperties, queue_family_count);
 
     vkGetPhysicalDeviceQueueFamilyProperties(
         phy_device,
@@ -150,9 +144,7 @@ Result new_renderer_queues(
 
     trace(LOG_TARGET, "creating new renderer queues...");
 
-    struct RendererQueues *queues = calloc(1, sizeof(struct RendererQueues));
-    result.object = queues;
-    EXPECT_MEM_ALLOC(result);
+    struct RendererQueues *queues = ALLOC(result, struct RendererQueues);
 
     if (queue_cis_count == 1) {
         present_idx = graphics_idx;

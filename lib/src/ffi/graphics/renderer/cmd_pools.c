@@ -35,9 +35,7 @@ Result new_renderer_cmd_pools(VkDevice device, struct RendererQueueFamilies *que
 
     trace(LOG_TARGET, "creating new renderer command pools...");
 
-    struct RendererCmdPools *cmd_pools = calloc(1, sizeof(struct RendererCmdPools));
-    result.object = cmd_pools;
-    EXPECT_MEM_ALLOC(result);
+    struct RendererCmdPools *cmd_pools = ALLOC(result, struct RendererCmdPools);
 
     cmd_pools->device = device;
 

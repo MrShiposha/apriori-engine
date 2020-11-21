@@ -44,9 +44,7 @@ Result new_swapchain(struct SwapchainCreateParams *params) {
 
     trace(LOG_TARGET, "creating new swapchain...");
 
-    struct Swapchain *swapchain = calloc(1, sizeof(struct Swapchain));
-    result.object = swapchain;
-    EXPECT_MEM_ALLOC(result);
+    struct Swapchain *swapchain = ALLOC(result, struct Swapchain);
 
     trace(LOG_TARGET, "\tgetting surface capabilities...");
     VkSurfaceCapabilitiesKHR surface_caps = { 0 };
@@ -66,9 +64,7 @@ Result new_swapchain(struct SwapchainCreateParams *params) {
     );
     EXPECT_SUCCESS(result);
 
-    result.object = calloc(present_modes_count, sizeof(VkPresentModeKHR));
-    EXPECT_MEM_ALLOC(result);
-    present_modes = result.object;
+    present_modes = ALLOC_ARRAY_UNINIT(result, VkPresentModeKHR, present_modes_count);
 
     result.error = vkGetPhysicalDeviceSurfacePresentModesKHR(
         params->phy_device,
@@ -132,9 +128,7 @@ Result new_swapchain(struct SwapchainCreateParams *params) {
 
     swapchain->device = params->device;
 
-    swapchain->images = calloc(swapchain->image_count, sizeof(VkImage));
-    result.object = swapchain->images;
-    EXPECT_MEM_ALLOC(result);
+    swapchain->images = ALLOC_ARRAY_UNINIT(result, VkImage, swapchain->image_count);
 
     result.error = vkGetSwapchainImagesKHR(
         params->device,
@@ -148,9 +142,7 @@ Result new_swapchain(struct SwapchainCreateParams *params) {
 
     trace(LOG_TARGET, "\tcreating new swapchain image views...");
 
-    swapchain->views = calloc(swapchain->image_count, sizeof(VkImageView));
-    result.object = swapchain->views;
-    EXPECT_MEM_ALLOC(result);
+    swapchain->views = ALLOC_ARRAY_UNINIT(result, VkImageView, swapchain->image_count);
 
     image_view_ci.format = params->surface_format.format;
     image_view_ci.components = iv_components;

@@ -72,9 +72,7 @@ Result check_all_layers_available(const char **layers, uint32_t num_layers) {
 
     trace(LOG_TARGET, "available validation layers count: %d", property_count);
 
-    layer_props = malloc(property_count * sizeof(VkLayerProperties));
-    result.object = layer_props;
-    EXPECT_MEM_ALLOC(result);
+    layer_props = ALLOC_ARRAY_UNINIT(result, VkLayerProperties, property_count);
 
     result.error = vkEnumerateInstanceLayerProperties(&property_count, layer_props);
     EXPECT_SUCCESS(result);
@@ -179,9 +177,7 @@ Result new_vk_instance() {
 
     trace(LOG_TARGET, "creating new vulkan instance...");
 
-    VulkanInstance instance = calloc(1, sizeof(struct VulkanInstanceFFI));
-    result.object = instance;
-    EXPECT_MEM_ALLOC(result);
+    VulkanInstance instance = ALLOC(result, struct VulkanInstanceFFI);
 
     static VkApplicationInfo app_info = {
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,

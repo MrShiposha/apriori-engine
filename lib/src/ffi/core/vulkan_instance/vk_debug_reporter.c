@@ -22,8 +22,7 @@ Result new_debug_reporter(VulkanInstance instance, PFN_vkDebugReportCallbackEXT 
         vk_handle(instance),
         "vkCreateDebugReportCallbackEXT"
     );
-    result.object = (Handle)vkCreateDebugReportCallbackEXT;
-    EXPECT_MEM_ALLOC(result);
+    UNWRAP_MEM_ALLOC(result, (Handle)vkCreateDebugReportCallbackEXT);
 
     VkDebugReportCallbackCreateInfoEXT debug_report_ci = {
         .sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT,
@@ -34,9 +33,7 @@ Result new_debug_reporter(VulkanInstance instance, PFN_vkDebugReportCallbackEXT 
                 | VK_DEBUG_REPORT_DEBUG_BIT_EXT
     };
 
-    reporter = malloc(sizeof(DebugReporter));
-    result.object = reporter;
-    EXPECT_MEM_ALLOC(result);
+    reporter = ALLOC_UNINIT(result, DebugReporter);
 
     reporter->instance = instance;
     result.error = vkCreateDebugReportCallbackEXT(
