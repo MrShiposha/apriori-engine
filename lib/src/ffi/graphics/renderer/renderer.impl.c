@@ -282,7 +282,7 @@ Result new_gpu(
     };
     VkDevice gpu = VK_NULL_HANDLE;
 
-    trace(LOG_TARGET, "creating new GPU object...");
+    info(LOG_TARGET, "creating new GPU object...");
 
 #   ifdef ___debug___
     const char *layer_names[] = {
@@ -321,7 +321,7 @@ Result new_gpu(
     result.object = gpu;
     EXPECT_SUCCESS(result);
 
-    trace(LOG_TARGET, "new GPU object created successfully");
+    info(LOG_TARGET, "new GPU object created successfully");
 
     FN_FORCE_EXIT(result);
 }
@@ -339,7 +339,7 @@ Result new_renderer(
     DynArray surface_formats = NULL;
     struct SwapchainCreateParams swapchain_params = { 0 };
 
-    trace(
+    info(
         LOG_TARGET,
         "creating new renderer..."
     );
@@ -447,5 +447,5 @@ void drop_renderer(Renderer renderer) {
     free(renderer);
 
 exit:
-    trace(LOG_TARGET, "drop renderer");
+    debug(LOG_TARGET, "drop renderer");
 }

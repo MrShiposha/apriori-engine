@@ -12,7 +12,7 @@ Result new_debug_reporter(VulkanInstance instance, PFN_vkDebugReportCallbackEXT 
     Result result = { 0 };
     DebugReporter *reporter = NULL;
 
-    trace(
+    info(
         LOG_TARGET,
         "creating new debug reporter..."
     );
@@ -75,7 +75,7 @@ void drop_debug_reporter(DebugReporter *debug_reporter) {
     }
 
 exit:
-    trace(
+    debug(
         LOG_TARGET,
         "drop debug reporter"
     );

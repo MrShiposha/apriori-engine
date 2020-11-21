@@ -14,7 +14,7 @@ Result new_renderer_queue_families(
     Result result = { 0 };
     VkQueueFamilyProperties *family_props = NULL;
 
-    trace(
+    info(
         LOG_TARGET,
         "creating new renderer queue families..."
     );
@@ -93,7 +93,7 @@ Result new_renderer_queue_families(
     else {
         result.object = families;
 
-        trace(
+        info(
             LOG_TARGET,
             "new renderer queue families created successfully"
         );
@@ -131,7 +131,7 @@ void drop_renderer_queue_families(struct RendererQueueFamilies *queues) {
     free(queues);
 
 exit:
-    trace(LOG_TARGET, "drop renderer queue families");
+    debug(LOG_TARGET, "drop renderer queue families");
 }
 
 Result new_renderer_queues(
@@ -143,7 +143,7 @@ Result new_renderer_queues(
     uint32_t graphics_idx = RENDERER_QUEUE_GRAPHICS_IDX;
     uint32_t present_idx = RENDERER_QUEUE_PRESENT_IDX;
 
-    trace(LOG_TARGET, "creating new renderer queues...");
+    info(LOG_TARGET, "creating new renderer queues...");
 
     struct RendererQueues *queues = ALLOC(result, struct RendererQueues);
 
@@ -165,7 +165,7 @@ Result new_renderer_queues(
         &queues->present
     );
 
-    trace(LOG_TARGET, "new renderer queues created successfully");
+    info(LOG_TARGET, "new renderer queues created successfully");
 
     FN_FORCE_EXIT(result);
 }
@@ -177,5 +177,5 @@ void drop_renderer_queues(struct RendererQueues *queues) {
     free(queues);
 
 exit:
-    trace(LOG_TARGET, "drop renderer queues");
+    debug(LOG_TARGET, "drop renderer queues");
 }

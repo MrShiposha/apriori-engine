@@ -65,7 +65,7 @@ impl<Id: io::InputId> Window<Id> {
         size: WindowSize,
         position: WindowPosition
     ) -> Result<Self> {
-        log::trace! {
+        log::info! {
             target: Self::LOG_TARGET,
             "creating new window..."
         };
@@ -168,7 +168,7 @@ impl<Id: io::InputId> Window<Id> {
             internal
         };
 
-        log::trace! {
+        log::info! {
             target: Self::LOG_TARGET,
             "new window created successfully"
         };
@@ -190,7 +190,7 @@ impl<Id: io::InputId> Drop for Window<Id> {
             }
         }
 
-        log::trace! {
+        log::debug! {
             target: Self::LOG_TARGET,
             "drop window"
         }

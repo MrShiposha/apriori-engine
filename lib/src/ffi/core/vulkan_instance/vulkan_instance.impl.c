@@ -163,7 +163,7 @@ Result init_phy_devices(VulkanInstance instance) {
 Result new_vk_instance() {
     Result result = { 0 };
 
-    trace(LOG_TARGET, "creating new vulkan instance...");
+    info(LOG_TARGET, "creating new vulkan instance...");
 
     VulkanInstance instance = ALLOC(result, struct VulkanInstanceFFI);
 
@@ -277,5 +277,5 @@ void drop_vk_instance(VulkanInstance instance) {
     free(instance);
 
 exit:
-    trace(LOG_TARGET, "drop vulkan instance");
+    debug(LOG_TARGET, "drop vulkan instance");
 }

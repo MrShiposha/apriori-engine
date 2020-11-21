@@ -33,7 +33,7 @@ Result new_renderer_cmd_pools(VkDevice device, struct RendererQueueFamilies *que
 
     Result result = { 0 };
 
-    trace(LOG_TARGET, "creating new renderer command pools...");
+    info(LOG_TARGET, "creating new renderer command pools...");
 
     struct RendererCmdPools *cmd_pools = ALLOC(result, struct RendererCmdPools);
 
@@ -64,7 +64,7 @@ Result new_renderer_cmd_pools(VkDevice device, struct RendererQueueFamilies *que
     }
 
     result.object = cmd_pools;
-    trace(LOG_TARGET, "new renderer command pools created successfully");
+    info(LOG_TARGET, "new renderer command pools created successfully");
 
     FN_EXIT(result);
 
@@ -88,5 +88,5 @@ void drop_renderer_cmd_pools(struct RendererCmdPools *cmd_pools) {
     free(cmd_pools);
 
 exit:
-    trace(LOG_TARGET, "drop renderer cmd pools");
+    debug(LOG_TARGET, "drop renderer cmd pools");
 }

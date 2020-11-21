@@ -44,7 +44,7 @@ Result new_renderer_cmd_buffers(
 
     Result result = { 0 };
 
-    trace(LOG_TARGET, "creating new command buffers...");
+    info(LOG_TARGET, "creating new command buffers...");
     struct RendererCmdBuffers *cmd_buffers = ALLOC(result, struct RendererCmdBuffers);
 
     cmd_buffers->device = device;
@@ -88,7 +88,7 @@ Result new_renderer_cmd_buffers(
     }
 
     result.object = cmd_buffers;
-    trace(LOG_TARGET, "new command buffers created successfully");
+    info(LOG_TARGET, "new command buffers created successfully");
 
     FN_EXIT(result);
     FN_FAILURE(result, {
@@ -130,5 +130,5 @@ void drop_renderer_cmd_buffers(struct RendererCmdBuffers *cmd_buffers) {
     free(cmd_buffers);
 
 exit:
-    trace(LOG_TARGET, "drop renderer cmd buffers");
+    debug(LOG_TARGET, "drop renderer cmd buffers");
 }

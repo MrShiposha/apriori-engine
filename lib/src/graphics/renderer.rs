@@ -16,7 +16,7 @@ impl Renderer {
         vk_instance: &VulkanInstance,
         window: &os::Window<Id>,
     ) -> Result<Self> {
-        log::trace! {
+        log::info! {
             target: Self::LOG_TARGET,
             "creating new renderer..."
         }

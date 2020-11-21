@@ -42,7 +42,7 @@ Result new_swapchain(struct SwapchainCreateParams *params) {
         .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR
     };
 
-    trace(LOG_TARGET, "creating new swapchain...");
+    info(LOG_TARGET, "creating new swapchain...");
 
     struct Swapchain *swapchain = ALLOC(result, struct Swapchain);
 
@@ -163,7 +163,7 @@ Result new_swapchain(struct SwapchainCreateParams *params) {
     trace(LOG_TARGET, "\tnew swapchain image views created successfully");
 
     result.object = swapchain;
-    trace(LOG_TARGET, "new swapchain created successfully");
+    info(LOG_TARGET, "new swapchain created successfully");
 
     FN_EXIT(result, {
         free(present_modes);
@@ -195,5 +195,5 @@ void drop_swapchain(struct Swapchain *swapchain) {
     free(swapchain);
 
 exit:
-    trace(LOG_TARGET, "drop swapchain");
+    debug(LOG_TARGET, "drop swapchain");
 }

@@ -8,7 +8,7 @@ impl VulkanInstance {
     const LOG_TARGET: &'static str = "Rust/VulkanInstance";
 
     pub fn new() -> Result<Self> {
-        log::trace! {
+        log::info! {
             target: Self::LOG_TARGET,
             "creating new vulkan instance..."
         }
@@ -20,7 +20,7 @@ impl VulkanInstance {
             };
         }
 
-        log::trace! {
+        log::info! {
             target: Self::LOG_TARGET,
             "new vulkan instance successfully created"
         }

@@ -15,7 +15,7 @@ Result new_surface(
         .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR
     };
 
-    trace(LOG_TARGET, "creating new renderer surface...");
+    info(LOG_TARGET, "creating new renderer surface...");
 
     surface_ci.hinstance = GetModuleHandle(NULL);
     surface_ci.hwnd = window_platform_handle;
@@ -30,7 +30,7 @@ Result new_surface(
     result.object = surface;
     EXPECT_SUCCESS(result);
 
-    trace(LOG_TARGET, "new renderer surface created successfully");
+    info(LOG_TARGET, "new renderer surface created successfully");
 
     FN_FORCE_EXIT(result);
 }
@@ -38,5 +38,5 @@ Result new_surface(
 void drop_surface(VkInstance instance, VkSurfaceKHR surface) {
     vkDestroySurfaceKHR(instance, surface, NULL);
 
-    trace(LOG_TARGET, "drop surface");
+    debug(LOG_TARGET, "drop surface");
 }
