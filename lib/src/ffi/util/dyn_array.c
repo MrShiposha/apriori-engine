@@ -1,4 +1,4 @@
-#include "export/dyn_array.h"
+#include "dyn_array.h"
 
 Result ___apriori_impl_new_dyn_array(uint32_t count, size_t element_size) {
     Result result = { 0 };

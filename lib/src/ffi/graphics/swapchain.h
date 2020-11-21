@@ -1,10 +1,10 @@
-#ifndef ___APRIORI2_SWAPCHAIN_H___
-#define ___APRIORI2_SWAPCHAIN_H___
+#ifndef ___APRIORI2_GRAPHICS_SWAPCHAIN_H___
+#define ___APRIORI2_GRAPHICS_SWAPCHAIN_H___
 
 #include <vulkan/vulkan.h>
 
-#include "export/def.h"
-#include "export/result.h"
+#include "ffi/export/def.h"
+#include "ffi/export/result.h"
 #include "renderer/queues.h"
 
 struct RendererQueues;
@@ -30,4 +30,4 @@ Result new_swapchain(struct SwapchainCreateParams *params);
 
 void drop_swapchain(struct Swapchain *swapchain);
 
-#endif // ___APRIORI2_SWAPCHAIN_H___
+#endif // ___APRIORI2_GRAPHICS_SWAPCHAIN_H___

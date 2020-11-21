@@ -1,8 +1,8 @@
-#ifndef ___APRIORI2_VULKAN_INSTANCE_H___
-#define ___APRIORI2_VULKAN_INSTANCE_H___
+#ifndef ___APRIORI2_CORE_VULKAN_INSTANCE_H___
+#define ___APRIORI2_CORE_VULKAN_INSTANCE_H___
 
 #ifdef ___debug___
-#   include "ffi/vk_debug_reporter.h"
+#   include "ffi/core/vk_debug_reporter.h"
 #endif // ___debug___
 
 struct VulkanInstanceFFI {
@@ -15,4 +15,4 @@ struct VulkanInstanceFFI {
 #endif // ___debug___
 };
 
-#endif // ___APRIORI2_VULKAN_INSTANCE_H___
+#endif // ___APRIORI2_CORE_VULKAN_INSTANCE_H___

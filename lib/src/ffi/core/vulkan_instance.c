@@ -4,14 +4,13 @@
 #include <string.h>
 #include <vulkan/vulkan.h>
 
-#include "ffi/log.h"
+#include "ffi/core/log.h"
 
 #include "ffi/export/vulkan_instance.h"
 #include "vulkan_instance.h"
-#include "ffi/app_info.h"
-#include "ffi/result_fns.h"
+#include "ffi/core/app_info.h"
 
-#include "ffi/util.h"
+#include "ffi/util/mod.h"
 #include "ffi/export/def.h"
 
 #define LOG_TARGET "FFI/VulkanInstance"
@@ -62,28 +61,23 @@
 #endif // os
 
 Result check_all_layers_available(const char **layers, uint32_t num_layers) {
-    Apriori2Error err = SUCCESS;
+    Result result = { 0 };
     VkLayerProperties *layer_props = NULL;
     uint32_t property_count = 0;
 
     trace(LOG_TARGET, "checking requested validation layers");
 
-    err = vkEnumerateInstanceLayerProperties(&property_count, NULL);
-    if (err != VK_SUCCESS) {
-        goto exit;
-    }
+    result.error = vkEnumerateInstanceLayerProperties(&property_count, NULL);
+    EXPECT_SUCCESS(result);
 
     trace(LOG_TARGET, "available validation layers count: %d", property_count);
 
     layer_props = malloc(property_count * sizeof(VkLayerProperties));
-    if (layer_props == NULL) {
-        err = OUT_OF_MEMORY;
-        goto exit;
-    }
+    result.object = layer_props;
+    EXPECT_MEM_ALLOC(result);
 
-    err = vkEnumerateInstanceLayerProperties(&property_count, layer_props);
-    if (err != VK_SUCCESS)
-        goto exit;
+    result.error = vkEnumerateInstanceLayerProperties(&property_count, layer_props);
+    EXPECT_SUCCESS(result);
 
     for (uint32_t i = 0, j = 0; i < num_layers; ++i) {
         for (j = 0; j < property_count; ++j) {
@@ -93,41 +87,36 @@ Result check_all_layers_available(const char **layers, uint32_t num_layers) {
 
         if (j == property_count) {
             // Some layer was not found
-            err = LAYERS_NOT_FOUND;
+            result.error = LAYERS_NOT_FOUND;
             error(LOG_TARGET, "layer \"%s\" is not found", layers[i]);
         } else {
             trace(LOG_TARGET, "\tvalidation layer \"%s\": OK", layers[i]);
         }
     }
 
-exit:
-    free(layer_props);
-    return apriori2_error(err);
+    FN_FORCE_EXIT(result, {
+        free(layer_props);
+    });
 }
 
 Result check_all_extensions_available(const char **extensions, uint32_t num_extensions) {
-    Apriori2Error err = SUCCESS;
+    Result result = { 0 };
     VkExtensionProperties *extension_props = NULL;
     uint32_t property_count = 0;
 
     trace(LOG_TARGET, "checking requested extensions");
 
-    err = vkEnumerateInstanceExtensionProperties(NULL, &property_count, NULL);
-    if (err != VK_SUCCESS) {
-        goto exit;
-    }
+    result.error = vkEnumerateInstanceExtensionProperties(NULL, &property_count, NULL);
+    EXPECT_SUCCESS(result);
 
     trace(LOG_TARGET, "available extension count: %d", property_count);
 
     extension_props = malloc(property_count * sizeof(VkLayerProperties));
-    if (extension_props == NULL) {
-        err = OUT_OF_MEMORY;
-        goto exit;
-    }
+    result.object = extension_props;
+    EXPECT_SUCCESS(result);
 
-    err = vkEnumerateInstanceExtensionProperties(NULL, &property_count, extension_props);
-    if (err != VK_SUCCESS)
-        goto exit;
+    result.error = vkEnumerateInstanceExtensionProperties(NULL, &property_count, extension_props);
+    EXPECT_SUCCESS(result);
 
     for (uint32_t i = 0, j = 0; i < num_extensions; ++i) {
         for (j = 0; j < property_count; ++j) {
@@ -137,16 +126,16 @@ Result check_all_extensions_available(const char **extensions, uint32_t num_exte
 
         if (j == property_count) {
             // Some extensions was not found
-            err = EXTENSIONS_NOT_FOUND;
+            result.error = EXTENSIONS_NOT_FOUND;
             error(LOG_TARGET, "extension \"%s\" is not found", extensions[i]);
         } else {
             trace(LOG_TARGET, "\textension \"%s\": OK", extensions[i]);
         }
     }
 
-exit:
-    free(extension_props);
-    return apriori2_error(err);
+    FN_FORCE_EXIT(result, {
+        free(extension_props);
+    });
 }
 
 Result init_phy_devices(VulkanInstance instance) {
@@ -191,8 +180,8 @@ Result new_vk_instance() {
     trace(LOG_TARGET, "creating new vulkan instance...");
 
     VulkanInstance instance = calloc(1, sizeof(struct VulkanInstanceFFI));
-    if (instance == NULL)
-        return apriori2_error(OUT_OF_MEMORY);
+    result.object = instance;
+    EXPECT_MEM_ALLOC(result);
 
     static VkApplicationInfo app_info = {
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -272,6 +261,7 @@ Result new_vk_instance() {
     }
 
     FN_EXIT(result);
+
     FN_FAILURE(result, {
         if (instance->vk_handle != NULL)
             drop_vk_instance(instance);

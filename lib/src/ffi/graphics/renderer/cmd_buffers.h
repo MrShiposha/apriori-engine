@@ -1,5 +1,5 @@
-#ifndef ___APRIORI2_RENDERER_CMD_BUFFERS_H___
-#define ___APRIORI2_RENDERER_CMD_BUFFERS_H___
+#ifndef ___APRIORI2_GRAPHICS_RENDERER_CMD_BUFFERS_H___
+#define ___APRIORI2_GRAPHICS_RENDERER_CMD_BUFFERS_H___
 
 #include <vulkan/vulkan.h>
 #include "ffi/export/result.h"
@@ -23,4 +23,4 @@ Result new_renderer_cmd_buffers(
 
 void drop_renderer_cmd_buffers(struct RendererCmdBuffers *cmd_buffers);
 
-#endif // ___APRIORI2_RENDERER_CMD_BUFFERS_H___
+#endif // ___APRIORI2_GRAPHICS_RENDERER_CMD_BUFFERS_H___

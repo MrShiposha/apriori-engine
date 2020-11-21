@@ -1,6 +1,6 @@
 #include "queues.h"
-#include "ffi/util.h"
-#include "ffi/log.h"
+#include "ffi/util/mod.h"
+#include "ffi/core/log.h"
 
 #define LOG_TARGET "Renderer/Queue families"
 

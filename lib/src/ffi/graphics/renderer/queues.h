@@ -1,5 +1,5 @@
-#ifndef ___APRIORI2_RENDERER_QUEUES_H___
-#define ___APRIORI2_RENDERER_QUEUES_H___
+#ifndef ___APRIORI2_GRAPHICS_RENDERER_QUEUES_H___
+#define ___APRIORI2_GRAPHICS_RENDERER_QUEUES_H___
 
 #include <vulkan/vulkan.h>
 #include <stdbool.h>
@@ -37,4 +37,4 @@ Result new_renderer_queues(
 
 void drop_renderer_queues(struct RendererQueues *queues);
 
-#endif // ___APRIORI2_RENDERER_QUEUES_H___
+#endif // ___APRIORI2_GRAPHICS_RENDERER_QUEUES_H___

@@ -3,11 +3,13 @@
 
 #include "vk_debug_reporter.h"
 #include "log.h"
-#include "result_fns.h"
 
 #define LOG_TARGET "FFI/DebugReporter"
 
 Result new_debug_reporter(VulkanInstance instance, PFN_vkDebugReportCallbackEXT callback) {
+    Result result = { 0 };
+    DebugReporter *reporter = NULL;
+
     trace(
         LOG_TARGET,
         "creating new debug reporter..."
@@ -18,9 +20,8 @@ Result new_debug_reporter(VulkanInstance instance, PFN_vkDebugReportCallbackEXT 
         vk_handle(instance),
         "vkCreateDebugReportCallbackEXT"
     );
-
-    if (vkCreateDebugReportCallbackEXT == NULL)
-        return apriori2_error(DEBUG_REPORTER_CREATION);
+    result.object = (Handle)vkCreateDebugReportCallbackEXT;
+    EXPECT_MEM_ALLOC(result);
 
     VkDebugReportCallbackCreateInfoEXT debug_report_ci = {
         .sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT,
@@ -31,26 +32,23 @@ Result new_debug_reporter(VulkanInstance instance, PFN_vkDebugReportCallbackEXT 
                 | VK_DEBUG_REPORT_DEBUG_BIT_EXT
     };
 
-    DebugReporter *reporter = malloc(sizeof(DebugReporter));
-    if (reporter == NULL)
-        return apriori2_error(OUT_OF_MEMORY);
+    reporter = malloc(sizeof(DebugReporter));
+    result.object = reporter;
+    EXPECT_MEM_ALLOC(result);
 
     reporter->instance = instance;
-    VkResult result = vkCreateDebugReportCallbackEXT(
+    result.error = vkCreateDebugReportCallbackEXT(
         vk_handle(instance),
         &debug_report_ci,
         NULL,
         &reporter->callback
     );
 
-    if (result == VK_SUCCESS) {
-        trace(
-            LOG_TARGET,
-            "new debug reporter successfully created"
-        );
-    }
+    FN_EXIT(result);
 
-    return new_result(reporter, result);
+    FN_FAILURE(result, {
+        free(reporter);
+    });
 }
 
 void drop_debug_reporter(DebugReporter *debug_reporter) {

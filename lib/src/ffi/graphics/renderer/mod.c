@@ -8,15 +8,12 @@
 #include "ffi/export/renderer.h"
 #include "mod.h"
 
-#include "ffi/vulkan_instance.h"
 #include "ffi/export/def.h"
 #include "ffi/export/error.h"
-#include "ffi/export/vulkan_instance.h"
-#include "ffi/result_fns.h"
+#include "ffi/core/vulkan_instance.h"
+#include "ffi/core/log.h"
 #include "ffi/os/surface.h"
-#include "ffi/log.h"
-#include "ffi/util.h"
-#include "ffi/export/dyn_array.h"
+#include "ffi/util/mod.h"
 
 #define LOG_TARGET "FFI/Renderer"
 #define CI_GRAPHICS_IDX 0
@@ -192,28 +189,23 @@ void fill_renderer_queues_create_info(
 }
 
 Result check_all_device_layers_available(VkPhysicalDevice device, const char **layers, uint32_t num_layers) {
-    Apriori2Error err = SUCCESS;
+    Result result = { 0 };
     VkLayerProperties *layer_props = NULL;
     uint32_t property_count = 0;
 
     trace(LOG_TARGET, "checking requested validation layers");
 
-    err = vkEnumerateDeviceLayerProperties(device, &property_count, NULL);
-    if (err != VK_SUCCESS) {
-        goto exit;
-    }
+    result.error = vkEnumerateDeviceLayerProperties(device, &property_count, NULL);
+    EXPECT_SUCCESS(result);
 
     trace(LOG_TARGET, "available validation layers count: %d", property_count);
 
     layer_props = malloc(property_count * sizeof(VkLayerProperties));
-    if (layer_props == NULL) {
-        err = OUT_OF_MEMORY;
-        goto exit;
-    }
+    result.object = layer_props;
+    EXPECT_MEM_ALLOC(result);
 
-    err = vkEnumerateDeviceLayerProperties(device, &property_count, layer_props);
-    if (err != VK_SUCCESS)
-        goto exit;
+    result.error = vkEnumerateDeviceLayerProperties(device, &property_count, layer_props);
+    EXPECT_MEM_ALLOC(result);
 
     for (uint32_t i = 0, j = 0; i < num_layers; ++i) {
         for (j = 0; j < property_count; ++j) {
@@ -223,16 +215,16 @@ Result check_all_device_layers_available(VkPhysicalDevice device, const char **l
 
         if (j == property_count) {
             // Some layer was not found
-            err = LAYERS_NOT_FOUND;
+            result.error = LAYERS_NOT_FOUND;
             error(LOG_TARGET, "layer \"%s\" is not found", layers[i]);
         } else {
             trace(LOG_TARGET, "\tvalidation layer \"%s\": OK", layers[i]);
         }
     }
 
-exit:
-    free(layer_props);
-    return apriori2_error(err);
+    FN_FORCE_EXIT(result, {
+        free(layer_props);
+    });
 }
 
 Result check_all_device_extensions_available(
@@ -240,28 +232,23 @@ Result check_all_device_extensions_available(
     const char **extensions,
     uint32_t num_extensions
 ) {
-    Apriori2Error err = SUCCESS;
+    Result result = { 0 };
     VkExtensionProperties *extension_props = NULL;
     uint32_t property_count = 0;
 
     trace(LOG_TARGET, "checking requested extensions");
 
-    err = vkEnumerateDeviceExtensionProperties(phy_device, NULL, &property_count, NULL);
-    if (err != VK_SUCCESS) {
-        goto exit;
-    }
+    result.error = vkEnumerateDeviceExtensionProperties(phy_device, NULL, &property_count, NULL);
+    EXPECT_SUCCESS(result);
 
     trace(LOG_TARGET, "available extension count: %d", property_count);
 
     extension_props = malloc(property_count * sizeof(VkLayerProperties));
-    if (extension_props == NULL) {
-        err = OUT_OF_MEMORY;
-        goto exit;
-    }
+    result.object = extension_props;
+    EXPECT_MEM_ALLOC(result);
 
-    err = vkEnumerateDeviceExtensionProperties(phy_device, NULL, &property_count, extension_props);
-    if (err != VK_SUCCESS)
-        goto exit;
+    result.error = vkEnumerateDeviceExtensionProperties(phy_device, NULL, &property_count, extension_props);
+    EXPECT_SUCCESS(result);
 
     for (uint32_t i = 0, j = 0; i < num_extensions; ++i) {
         for (j = 0; j < property_count; ++j) {
@@ -271,16 +258,16 @@ Result check_all_device_extensions_available(
 
         if (j == property_count) {
             // Some extensions was not found
-            err = EXTENSIONS_NOT_FOUND;
+            result.error = EXTENSIONS_NOT_FOUND;
             error(LOG_TARGET, "extension \"%s\" is not found", extensions[i]);
         } else {
             trace(LOG_TARGET, "\textension \"%s\": OK", extensions[i]);
         }
     }
 
-exit:
-    free(extension_props);
-    return apriori2_error(err);
+    FN_FORCE_EXIT(result, {
+        free(extension_props);
+    });
 }
 
 Result new_gpu(

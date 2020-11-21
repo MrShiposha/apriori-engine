@@ -1,11 +1,11 @@
-#ifndef ___APRIORI2_DYN_ARRAY_H___
-#define ___APRIORI2_DYN_ARRAY_H___
+#ifndef ___APRIORI2_UTIL_DYN_ARRAY_H___
+#define ___APRIORI2_UTIL_DYN_ARRAY_H___
 
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "def.h"
-#include "result.h"
+#include "ffi/export/def.h"
+#include "ffi/export/result.h"
 
 typedef struct {
     uint32_t count;

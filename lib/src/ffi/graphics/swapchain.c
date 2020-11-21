@@ -1,6 +1,7 @@
-#include "util.h"
-#include "log.h"
 #include "swapchain.h"
+
+#include "ffi/util/mod.h"
+#include "ffi/core/log.h"
 #include "renderer/mod.h"
 
 #define LOG_TARGET "Swapchain"
