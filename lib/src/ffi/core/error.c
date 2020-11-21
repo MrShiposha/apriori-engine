@@ -9,6 +9,7 @@ const char *error_to_string(Apriori2Error error) {
     switch (general_error) {
     APRIORI_CASE(SUCCESS);
     APRIORI_CASE(OUT_OF_MEMORY);
+    APRIORI_CASE(VK_PROC_NOT_FOUND);
     APRIORI_CASE(DEBUG_REPORTER_CREATION);
     APRIORI_CASE(LAYERS_NOT_FOUND);
     APRIORI_CASE(EXTENSIONS_NOT_FOUND);
