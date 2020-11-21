@@ -109,9 +109,7 @@ Result check_all_extensions_available(const char **extensions, uint32_t num_exte
 
     trace(LOG_TARGET, "available extension count: %d", property_count);
 
-    extension_props = malloc(property_count * sizeof(VkLayerProperties));
-    result.object = extension_props;
-    EXPECT_SUCCESS(result);
+    extension_props = ALLOC_ARRAY_UNINIT(result, VkLayerProperties, property_count);
 
     result.error = vkEnumerateInstanceExtensionProperties(NULL, &property_count, extension_props);
     EXPECT_SUCCESS(result);
@@ -146,30 +144,20 @@ Result init_phy_devices(VulkanInstance instance) {
         &instance->phy_device_count,
         NULL
     );
-    if (result.error != VK_SUCCESS)
-        goto exit;
+    EXPECT_SUCCESS(result);
 
-    instance->phy_devices = calloc(
-        instance->phy_device_count,
-        sizeof(VkPhysicalDevice)
-    );
-    if (instance->phy_devices == NULL) {
-        result.error = OUT_OF_MEMORY;
-        goto exit;
-    }
+    instance->phy_devices = ALLOC_ARRAY(result, VkPhysicalDevice, instance->phy_device_count);
 
     result.error = vkEnumeratePhysicalDevices(
         instance->vk_handle,
         &instance->phy_device_count,
         instance->phy_devices
     );
+    EXPECT_SUCCESS(result);
 
-    if (result.error == VK_SUCCESS) {
-        trace(LOG_TARGET, "physical devices successfully initialized");
-    }
+    trace(LOG_TARGET, "physical devices successfully initialized");
 
-exit:
-    return result;
+    FN_FORCE_EXIT(result);
 }
 
 Result new_vk_instance() {

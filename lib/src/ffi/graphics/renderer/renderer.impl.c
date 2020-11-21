@@ -344,11 +344,7 @@ Result new_renderer(
         "creating new renderer..."
     );
 
-    Renderer renderer = calloc(1, sizeof(struct RendererFFI));
-    if (renderer == NULL) {
-        result.error = OUT_OF_MEMORY;
-        goto failure;
-    }
+    Renderer renderer = ALLOC(result, struct RendererFFI);
 
     renderer->vk_instance = vulkan_instance;
 
@@ -430,7 +426,7 @@ Result new_renderer(
     });
 
     FN_FAILURE(result, {
-        drop_renderer(result.object);
+        drop_renderer(renderer);
     });
 }
 
