@@ -13,11 +13,7 @@ Result new_command_buffer(VkDevice device, VkCommandPool cmd_pool, uint32_t buff
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
         .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
     };
-    VkCommandBuffer *buffers = calloc(buffer_count, sizeof(VkCommandBuffer));
-    if (buffers == NULL) {
-        result.error = OUT_OF_MEMORY;
-        return result;
-    }
+    VkCommandBuffer *buffers = ALLOC_ARRAY(result, VkCommandBuffer, buffer_count);
 
     allocate_info.commandPool = cmd_pool;
     allocate_info.commandBufferCount = buffer_count;
@@ -29,7 +25,11 @@ Result new_command_buffer(VkDevice device, VkCommandPool cmd_pool, uint32_t buff
     );
     result.object = buffers;
 
-    return result;
+    FN_EXIT(result);
+
+    FN_FAILURE(result, {
+        free(buffers);
+    });
 }
 
 Result new_renderer_cmd_buffers(
@@ -98,10 +98,10 @@ Result new_renderer_cmd_buffers(
 
 void drop_renderer_cmd_buffers(struct RendererCmdBuffers *cmd_buffers) {
     if (cmd_buffers == NULL)
-        return;
+        goto exit;
 
     if (cmd_buffers->device && cmd_buffers->cmd_pools) {
-        if (cmd_buffers->graphics)
+        if (cmd_buffers->graphics) {
             vkFreeCommandBuffers(
                 cmd_buffers->device,
                 cmd_buffers->cmd_pools->graphics,
@@ -109,18 +109,26 @@ void drop_renderer_cmd_buffers(struct RendererCmdBuffers *cmd_buffers) {
                 cmd_buffers->graphics
             );
 
+            free(cmd_buffers->graphics);
+        }
+
         if (
             cmd_buffers->present
             && cmd_buffers->graphics != cmd_buffers->present
-        ) vkFreeCommandBuffers(
-            cmd_buffers->device,
-            cmd_buffers->cmd_pools->present,
-            cmd_buffers->buffers_count,
-            cmd_buffers->present
-        );
+        ) {
+            vkFreeCommandBuffers(
+                cmd_buffers->device,
+                cmd_buffers->cmd_pools->present,
+                cmd_buffers->buffers_count,
+                cmd_buffers->present
+            );
+
+            free(cmd_buffers->present);
+        }
     }
 
     free(cmd_buffers);
 
+exit:
     trace(LOG_TARGET, "drop renderer cmd buffers");
 }

@@ -176,14 +176,16 @@ Result new_swapchain(struct SwapchainCreateParams *params) {
 
 void drop_swapchain(struct Swapchain *swapchain) {
     if (swapchain == NULL)
-        return;
+        goto exit;
 
-    for (uint32_t i = 0; i < swapchain->image_count; ++i) {
-        vkDestroyImageView(
-            swapchain->device,
-            AS(swapchain->views, VkImageView*)[i],
-            NULL
-        );
+    if (swapchain->views != NULL) {
+        for (uint32_t i = 0; i < swapchain->image_count; ++i) {
+            vkDestroyImageView(
+                swapchain->device,
+                AS(swapchain->views, VkImageView*)[i],
+                NULL
+            );
+        }
     }
 
     free(swapchain->views);
@@ -191,4 +193,7 @@ void drop_swapchain(struct Swapchain *swapchain) {
 
     vkDestroySwapchainKHR(swapchain->device, swapchain->vk_handle, NULL);
     free(swapchain);
+
+exit:
+    trace(LOG_TARGET, "drop swapchain");
 }

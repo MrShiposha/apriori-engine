@@ -3,19 +3,22 @@
 const char *error_to_string(Apriori2Error error) {
     uint32_t general_error = (uint32_t)error;
 
-#define APRIORI_CASE(v) case v: return #v
-#define VK_CASE(v) case VK_##v: return #v
+#define APRIORI_CASE(v, ...) case v: return #v __VA_ARGS__
+#define VK_CASE(v, ...) case VK_##v: return "(Vulkan API) " #v __VA_ARGS__
 
     switch (general_error) {
     APRIORI_CASE(SUCCESS);
-    APRIORI_CASE(OUT_OF_MEMORY);
-    APRIORI_CASE(VK_PROC_NOT_FOUND);
-    APRIORI_CASE(DEBUG_REPORTER_CREATION);
-    APRIORI_CASE(LAYERS_NOT_FOUND);
-    APRIORI_CASE(EXTENSIONS_NOT_FOUND);
-    APRIORI_CASE(GRAPHICS_QUEUE_FAMILY_NOT_FOUND);
-    APRIORI_CASE(PRESENT_QUEUE_FAMILY_NOT_FOUND);
-    APRIORI_CASE(RENDERER_QUEUE_FAMILIES_NOT_FOUND);
+    APRIORI_CASE(OUT_OF_MEMORY, ": memory allocation failure");
+    APRIORI_CASE(VK_PROC_NOT_FOUND, ": vkGetInstanceProcAddr failed");
+    APRIORI_CASE(DEBUG_REPORTER_CREATION, ": unable to create Vulkan Instance debug reporter");
+    APRIORI_CASE(LAYERS_NOT_FOUND, ": some Vulkan validation layers was not found");
+    APRIORI_CASE(EXTENSIONS_NOT_FOUND, ": some Vulkan extensions was not found");
+    APRIORI_CASE(GRAPHICS_QUEUE_FAMILY_NOT_FOUND, ": graphics queue family was not found on the physical device");
+    APRIORI_CASE(PRESENT_QUEUE_FAMILY_NOT_FOUND, ": present queue family was not found on the physical device");
+    APRIORI_CASE(
+        RENDERER_QUEUE_FAMILIES_NOT_FOUND,
+        ": both graphics and present queue families were not found on the physical device"
+    );
 
     VK_CASE(NOT_READY);
     VK_CASE(TIMEOUT);

@@ -126,10 +126,11 @@ bool is_same_queue_families(struct RendererQueueFamilies *families) {
 
 void drop_renderer_queue_families(struct RendererQueueFamilies *queues) {
     if (queues == NULL)
-        return;
+        goto exit;
 
     free(queues);
 
+exit:
     trace(LOG_TARGET, "drop renderer queue families");
 }
 
@@ -171,9 +172,10 @@ Result new_renderer_queues(
 
 void drop_renderer_queues(struct RendererQueues *queues) {
     if (queues == NULL)
-        return;
+        goto exit;
 
     free(queues);
 
+exit:
     trace(LOG_TARGET, "drop renderer queues");
 }

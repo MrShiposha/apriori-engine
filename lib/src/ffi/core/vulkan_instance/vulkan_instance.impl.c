@@ -238,9 +238,8 @@ Result new_vk_instance() {
     if(result.error != VK_SUCCESS)
         goto failure;
 
-    EXPECT_SUCCESS(
-        init_phy_devices(instance)
-    );
+    result = init_phy_devices(instance);
+    EXPECT_SUCCESS(result);
 
 #   ifdef ___debug___
     result = new_debug_reporter(
@@ -259,10 +258,7 @@ Result new_vk_instance() {
     FN_EXIT(result);
 
     FN_FAILURE(result, {
-        if (instance->vk_handle != NULL)
-            drop_vk_instance(instance);
-        else
-            free(instance);
+        drop_vk_instance(instance);
 
         error(
             LOG_TARGET,
@@ -281,7 +277,7 @@ VkInstance vk_handle(VulkanInstance instance) {
 
 void drop_vk_instance(VulkanInstance instance) {
     if (instance == NULL)
-        return;
+        goto exit;
 
 #   ifdef ___debug___
     drop_debug_reporter(instance->dbg_reporter);
@@ -292,5 +288,6 @@ void drop_vk_instance(VulkanInstance instance) {
     vkDestroyInstance(instance->vk_handle, NULL);
     free(instance);
 
+exit:
     trace(LOG_TARGET, "drop vulkan instance");
 }

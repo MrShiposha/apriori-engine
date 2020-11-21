@@ -75,7 +75,7 @@ Result new_renderer_cmd_pools(VkDevice device, struct RendererQueueFamilies *que
 
 void drop_renderer_cmd_pools(struct RendererCmdPools *cmd_pools) {
     if (cmd_pools == NULL)
-        return;
+        goto exit;
 
     if (cmd_pools->device) {
         if (cmd_pools->graphics)
@@ -87,5 +87,6 @@ void drop_renderer_cmd_pools(struct RendererCmdPools *cmd_pools) {
 
     free(cmd_pools);
 
+exit:
     trace(LOG_TARGET, "drop renderer cmd pools");
 }

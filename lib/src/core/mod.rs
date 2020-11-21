@@ -6,6 +6,7 @@ use {
         fmt,
         sync::PoisonError,
         ffi::CStr,
+        os::raw::c_char,
     },
     crate::{ffi, io},
 };
@@ -14,7 +15,8 @@ pub use vulkan_instance::VulkanInstance;
 
 #[derive(Debug)]
 pub enum Error {
-    Apriori2FFI(ffi::Apriori2Error),
+    Apriori2FFI(ffi::Apriori2Error, &'static str),
+    Utf8Error(std::str::Utf8Error),
     OsSpecific(String),
     KeyAndModifierMatch(io::VirtualKey),
     Sync(String),
@@ -22,9 +24,9 @@ pub enum Error {
     Io(std::io::Error),
 }
 
-impl From<ffi::Apriori2Error> for Error {
-    fn from(err: ffi::Apriori2Error) -> Self {
-        Self::Apriori2FFI(err)
+impl From<std::str::Utf8Error> for Error {
+    fn from(err: std::str::Utf8Error) -> Self {
+        Self::Utf8Error(err)
     }
 }
 
@@ -49,11 +51,8 @@ impl<T> From<PoisonError<T>> for Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Apriori2FFI(err) => write!(
-                f,
-                "FFI error: {}",
-                apriori_ffi_error_to_string(*err)
-            ),
+            Self::Apriori2FFI(_err, desc) => write!(f, "FFI error: {}", desc),
+            Self::Utf8Error(err) => write!(f, "{}", err),
             Self::OsSpecific(err) => write!(f, "(OS) {}", err),
             Self::KeyAndModifierMatch(key) => {
                 write!(f, "{:#?} - key and modifier are same", key)
@@ -62,16 +61,6 @@ impl fmt::Display for Error {
             Self::Serialization(err) => write!(f, "{}", err),
             Self::Io(err) => write!(f, "(io error) {}", err),
         }
-    }
-}
-
-fn apriori_ffi_error_to_string(error: ffi::Apriori2Error) -> String {
-    unsafe {
-        String::from_utf8_lossy(
-            CStr::from_ptr(
-                ffi::error_to_string(error)
-            ).to_bytes()
-        ).to_string()
     }
 }
 
@@ -86,7 +75,13 @@ impl ffi::Result {
             if self.error == ffi::Apriori2Error_SUCCESS {
                 result = std::mem::transmute::<ffi::Handle, *mut T>(self.object);
             } else {
-                return Err(self.error.into())
+                let error_code = self.error;
+
+                let error_description = CStr::from_ptr(
+                        std::mem::transmute::<ffi::Handle, *mut c_char>(self.object)
+                ).to_str()?;
+
+                return Err(Error::Apriori2FFI(error_code, error_description));
             }
         }
 

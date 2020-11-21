@@ -436,7 +436,7 @@ Result new_renderer(
 
 void drop_renderer(Renderer renderer) {
     if (renderer == NULL)
-        return;
+        goto exit;
 
     drop_renderer_cmd_buffers(renderer->buffers.cmd);
 
@@ -450,5 +450,6 @@ void drop_renderer(Renderer renderer) {
 
     free(renderer);
 
+exit:
     trace(LOG_TARGET, "drop renderer");
 }

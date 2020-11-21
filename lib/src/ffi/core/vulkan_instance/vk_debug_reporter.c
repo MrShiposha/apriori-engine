@@ -52,7 +52,13 @@ Result new_debug_reporter(VulkanInstance instance, PFN_vkDebugReportCallbackEXT 
 
 void drop_debug_reporter(DebugReporter *debug_reporter) {
     if (debug_reporter == NULL)
-        return;
+        goto exit;
+
+    if (debug_reporter->instance == NULL)
+        goto exit;
+
+    if (vk_handle(debug_reporter->instance) == VK_NULL_HANDLE)
+        goto exit;
 
     PFN_vkDestroyDebugReportCallbackEXT
     vkDestroyDebugReportCallbackEXT = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(
@@ -60,7 +66,7 @@ void drop_debug_reporter(DebugReporter *debug_reporter) {
         "vkDestroyDebugReportCallbackEXT"
     );
 
-    if (vkDestroyDebugReportCallbackEXT != NULL) {
+    if (debug_reporter->callback && vkDestroyDebugReportCallbackEXT != NULL) {
         vkDestroyDebugReportCallbackEXT(
             vk_handle(debug_reporter->instance),
             debug_reporter->callback,
@@ -68,6 +74,7 @@ void drop_debug_reporter(DebugReporter *debug_reporter) {
         );
     }
 
+exit:
     trace(
         LOG_TARGET,
         "drop debug reporter"
