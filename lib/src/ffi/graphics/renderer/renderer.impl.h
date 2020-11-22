@@ -26,6 +26,7 @@ struct RendererFFI {
     struct RendererQueues *queues;
     struct RendererPools pools;
     struct RendererBuffers buffers;
+    VkRenderPass render_pass;
 };
 
 #endif // ___APRIORI2_GRAPHICS_RENDERER_IMPL_H___

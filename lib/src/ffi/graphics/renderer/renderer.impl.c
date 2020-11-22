@@ -18,8 +18,11 @@
 #include "ffi/graphics/pipeline/overlay/mod.h"
 
 #define LOG_TARGET LOG_STRUCT_TARGET(Renderer)
+
 #define CI_GRAPHICS_IDX 0
 #define CI_PRESENT_IDX 1
+
+#define OVERLAY_SUBPASS_IDX 0
 
 struct PhyDeviceDescr {
     VkPhysicalDevice phy_device;
@@ -364,6 +367,65 @@ Result new_gpu(
     FN_FORCE_EXIT(result);
 }
 
+Result new_render_pass(VkDevice device, VkFormat surface_format) {
+    ASSERT_NOT_NULL(device);
+
+    Result result = { 0 };
+    VkAttachmentDescription color_attachment = {
+        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+        .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+    };
+    color_attachment.format = surface_format;
+
+    const uint32_t color_attachment_idx = 0;
+    VkAttachmentReference color_attachment_ref = {
+        .attachment = color_attachment_idx,
+        .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+    };
+
+    VkSubpassDescription subpasses[] = {
+        {
+            .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+            .colorAttachmentCount = 1,
+        }
+    };
+    subpasses[OVERLAY_SUBPASS_IDX].pColorAttachments = &color_attachment_ref;
+
+    VkRenderPassCreateInfo render_pass_ci = {
+        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+        .attachmentCount = 1,
+        .subpassCount = STATIC_ARRAY_SIZE(subpasses),
+
+        // TODO subpasses dependencies
+        .dependencyCount = 0,
+        .pDependencies = NULL
+    };
+    VkRenderPass render_pass = VK_NULL_HANDLE;
+
+    render_pass_ci.pAttachments = &color_attachment;
+    render_pass_ci.pSubpasses = subpasses;
+
+    info(LOG_TARGET, LOG_GROUP(struct, "creating new renderer render pass..."));
+
+    result.error = vkCreateRenderPass(
+        device,
+        &render_pass_ci,
+        NULL,
+        &render_pass
+    );
+    result.object = render_pass;
+    EXPECT_SUCCESS(result);
+
+    info(LOG_TARGET, LOG_GROUP(struct, "new renderer render pass created successfully"));
+
+    FN_FORCE_EXIT(result);
+}
+
 Result new_renderer(
     VulkanInstance vulkan_instance,
     Handle window_platform_handle,
@@ -482,6 +544,15 @@ Result new_renderer(
         result
     );
 
+    result = new_render_pass(
+        renderer->gpu,
+        swapchain_params.surface_format.format
+    );
+    RESULT_UNWRAP(
+        renderer->render_pass,
+        result
+    );
+
     result.object = renderer;
 
     info(
@@ -503,9 +574,16 @@ void drop_renderer(Renderer renderer) {
     if (renderer == NULL)
         goto exit;
 
-    drop_renderer_cmd_buffers(renderer->buffers.cmd);
+    VkResult result = vkDeviceWaitIdle(renderer->gpu);
+    if (result != VK_SUCCESS)
+        error(LOG_TARGET, "unable to wait device idle");
 
-    drop_renderer_cmd_pools(renderer->pools.cmd);
+    vkDestroyRenderPass(
+        renderer->gpu,
+        renderer->render_pass,
+        NULL
+    );
+    debug(LOG_TARGET, LOG_GROUP(struct, "drop renderer render pass"));
 
     vkDestroyDescriptorPool(
         renderer->gpu,
@@ -513,6 +591,10 @@ void drop_renderer(Renderer renderer) {
         NULL
     );
     debug(LOG_TARGET, LOG_GROUP(struct, "drop renderer descriptor pool"));
+
+    drop_renderer_cmd_buffers(renderer->buffers.cmd);
+
+    drop_renderer_cmd_pools(renderer->pools.cmd);
 
     drop_swapchain(renderer->swapchain);
 
