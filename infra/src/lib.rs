@@ -64,9 +64,13 @@ pub fn project_build(
         .warnings_into_errors(true);
 
     if cfg!(target_os = "windows") {
+        let c11_std_flag = "/std:c11";
+        let anno_union_suppress_warn = "/wd4201";
+
         cc_build.define("___windows___", None)
             .define("VK_USE_PLATFORM_WIN32_KHR", None)
-            .flag("/std:c11");
+            .flag(c11_std_flag)
+            .flag(anno_union_suppress_warn);
     } else if cfg!(target_os = "macos") {
         cc_build.define("___macos___", None)
             .define("VK_USE_PLATFORM_MACOS_MVK", None);
