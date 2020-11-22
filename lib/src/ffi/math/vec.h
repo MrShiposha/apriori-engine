@@ -1,27 +1,26 @@
 #ifndef ___APRIORI2_MATH_VEC_H___
 #define ___APRIORI2_MATH_VEC_H___
 
-#include "math_def.h"
 
 typedef struct {
     union {
-        struct { Coord x, y; };
-        struct { Coord u, v; };
+        struct { float x, y; };
+        struct { float u, v; };
     };
-} Vec2;
+} float2;
 
 typedef struct {
     union {
-        struct { Coord x, y, z; };
-        struct { Coord r, g, b; };
+        struct { float x, y, z; };
+        struct { float r, g, b; };
     };
-} Vec3;
+} float3;
 
 typedef struct {
     union {
-        struct { Coord x, y, z, w; };
-        struct { Coord r, g, b, a; };
+        struct { float x, y, z, w; };
+        struct { float r, g, b, a; };
     };
-} Vec4;
+} float4;
 
 #endif // ___APRIORI2_MATH_VEC_H___

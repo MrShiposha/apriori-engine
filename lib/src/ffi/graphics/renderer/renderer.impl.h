@@ -4,6 +4,7 @@
 #include <vulkan/vulkan.h>
 #include "ffi/core/vulkan_instance/mod.h"
 #include "ffi/graphics/swapchain.h"
+#include "ffi/graphics/pipeline/overlay/mod.h"
 
 #include "queues.h"
 #include "cmd_pools.h"
@@ -18,6 +19,10 @@ struct RendererBuffers {
     struct RendererCmdBuffers *cmd;
 };
 
+struct RendererPipelines {
+    struct PipelineOVL *overlay;
+};
+
 struct RendererFFI {
     VulkanInstance vk_instance;
     VkDevice gpu;
@@ -27,6 +32,8 @@ struct RendererFFI {
     struct RendererPools pools;
     struct RendererBuffers buffers;
     VkRenderPass render_pass;
+
+    struct RendererPipelines pipelines;
 };
 
 #endif // ___APRIORI2_GRAPHICS_RENDERER_IMPL_H___

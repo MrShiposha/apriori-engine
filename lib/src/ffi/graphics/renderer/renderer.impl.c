@@ -15,14 +15,10 @@
 #include "ffi/os/surface.h"
 #include "ffi/util/mod.h"
 
-#include "ffi/graphics/pipeline/overlay/mod.h"
-
 #define LOG_TARGET LOG_STRUCT_TARGET(Renderer)
 
 #define CI_GRAPHICS_IDX 0
 #define CI_PRESENT_IDX 1
-
-#define OVERLAY_SUBPASS_IDX 0
 
 struct PhyDeviceDescr {
     VkPhysicalDevice phy_device;
@@ -394,7 +390,7 @@ Result new_render_pass(VkDevice device, VkFormat surface_format) {
             .colorAttachmentCount = 1,
         }
     };
-    subpasses[OVERLAY_SUBPASS_IDX].pColorAttachments = &color_attachment_ref;
+    subpasses[RENDER_SUBPASS_OVERLAY_IDX].pColorAttachments = &color_attachment_ref;
 
     VkRenderPassCreateInfo render_pass_ci = {
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
@@ -553,6 +549,18 @@ Result new_renderer(
         result
     );
 
+    result = new_pipeline_ovl(
+        renderer->gpu,
+        renderer->render_pass,
+        &swapchain_params.image_extent,
+        renderer->swapchain->image_count,
+        NULL
+    );
+    RESULT_UNWRAP(
+        renderer->pipelines.overlay,
+        result
+    );
+
     result.object = renderer;
 
     info(
@@ -577,6 +585,8 @@ void drop_renderer(Renderer renderer) {
     VkResult result = vkDeviceWaitIdle(renderer->gpu);
     if (result != VK_SUCCESS)
         error(LOG_TARGET, "unable to wait device idle");
+
+    drop_pipeline_ovl(renderer->pipelines.overlay);
 
     vkDestroyRenderPass(
         renderer->gpu,

@@ -4,6 +4,8 @@
 #include "ffi/core/result.h"
 #include "ffi/core/vulkan_instance/mod.h"
 
+#define RENDER_SUBPASS_OVERLAY_IDX 0
+
 typedef struct RendererFFI *Renderer;
 
 Result new_renderer(

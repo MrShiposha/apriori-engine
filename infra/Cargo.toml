@@ -9,3 +9,4 @@ cc = { version = "1.0.61", features = ["parallel"] }
 bindgen = "0.55.1"
 shaderc = "0.6.3"
 convert_case = "0.4.0"
+pathdiff = "0.2.0"

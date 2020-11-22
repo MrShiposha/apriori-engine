@@ -12,6 +12,7 @@ use {
         ResolvedInclude
     },
     convert_case::{Case, Casing},
+    pathdiff::diff_paths,
     crate::{
         Result,
         Error,
@@ -20,9 +21,9 @@ use {
     },
 };
 
-const SHADER_DIR_NAME: &'static str = "gpu";
-
 pub fn process_shader_srcs(src_path: &PathBuf, dir: &Path) -> Result<()> {
+    const SHADER_DIR_NAME: &'static str = "gpu";
+
     for entry in fs::read_dir(dir)? {
         let entry = entry?;
         let path = entry.path();
@@ -33,7 +34,7 @@ pub fn process_shader_srcs(src_path: &PathBuf, dir: &Path) -> Result<()> {
 
         if let Some(dir_name) = path.components().last() {
             if dir_name.as_os_str().to_string_lossy() == SHADER_DIR_NAME {
-                process_shader_dir(src_path, &path)?;
+                process_shader_dir(src_path, dir, &path)?;
                 break;
             }
         }
@@ -42,22 +43,22 @@ pub fn process_shader_srcs(src_path: &PathBuf, dir: &Path) -> Result<()> {
     Ok(())
 }
 
-fn process_shader_dir(src_path: &PathBuf, dir: &Path) -> Result<()> {
+fn process_shader_dir(src_path: &PathBuf, top_shader_dir: &Path, dir: &Path) -> Result<()> {
     for entry in fs::read_dir(dir)? {
         let entry = entry?;
         let path = entry.path();
 
         if path.is_dir() {
-            process_shader_dir(src_path, &path)?;
+            process_shader_dir(src_path, top_shader_dir, &path)?;
         } else {
-            compile_shader(src_path, &path)?;
+            compile_shader(src_path, top_shader_dir, &path)?;
         }
     }
 
     Ok(())
 }
 
-fn compile_shader(src_path: &PathBuf, file_path: &Path) -> Result<()> {
+fn compile_shader(src_path: &PathBuf, top_shader_dir: &Path, file_path: &Path) -> Result<()> {
     let mut options = CompileOptions::new()
         .ok_or(Error::Internal("shader compile options allocation failure".to_string()))?;
 
@@ -91,6 +92,7 @@ fn compile_shader(src_path: &PathBuf, file_path: &Path) -> Result<()> {
     }
 
     options.set_source_language(source_language);
+    options.add_macro_definition("___gpu___", None);
     // TODO options.set_optimization_level(level)
 
     let source_text = fs::read_to_string(file_path)?;
@@ -110,16 +112,25 @@ fn compile_shader(src_path: &PathBuf, file_path: &Path) -> Result<()> {
     )?;
 
     let binary_spirv = spirv.as_binary();
+    let binary_spirv_code_size = binary_spirv.len() * std::mem::size_of_val(&binary_spirv[0]);
     let file_name = file_path
         .file_stem()
         .expect("shader file name")
         .to_str()
         .expect("shader file name str");
 
+    let parent_dir = file_path.parent()
+        .ok_or(Error::ShaderFile("unable to get shader parent dir".into()))?;
+
+    let shader_relative_path  = diff_paths(
+        parent_dir,
+        top_shader_dir
+    ).ok_or(Error::ShaderFile("unable to get shader relative path".into()))?;
+
     let shader_ffi_dir = src_path
         .join(FOREIGN_FN_IFACE_DIR_NAME)
         .join(GENERATED_FILE_DIR)
-        .join(SHADER_DIR_NAME);
+        .join(shader_relative_path);
 
     let shader_ffi_base = shader_ffi_dir.join(file_name);
 
@@ -144,7 +155,9 @@ r#"// This file generated automatically.
         file_name.to_case(Case::UpperSnake)
     );
 
-    let shader_fn_decl = format!("uint32_t *{}()", file_name.to_case(Case::Snake));
+    let shader_snake_name = file_name.to_case(Case::Snake);
+    let shader_fn_decl = format!("uint32_t *{}()", shader_snake_name);
+    let shader_code_size_fn_decl = format!("size_t {}_code_size()", shader_snake_name);
 
     let spirv_binary_hex = binary_spirv.iter()
         .map(|word| format!("{:#010X}", word))
@@ -161,10 +174,13 @@ r#"{do_not_modify_comment}
 
 {shader_fn_decl};
 
+{shader_code_size_fn_decl};
+
 #endif // {header_guard}"#,
     do_not_modify_comment = do_not_modify_comment,
     header_guard = header_guard,
     shader_fn_decl = shader_fn_decl,
+    shader_code_size_fn_decl = shader_code_size_fn_decl,
 };
 
     let shader_ffi_src_content = format! {
@@ -178,11 +194,18 @@ r#"{do_not_modify_comment}
     }};
 
     return shader_src;
-}}"#,
+}}
+
+{shader_code_size_fn_decl} {{
+    return {shader_code_size}ULL;
+}}
+"#,
     do_not_modify_comment = do_not_modify_comment,
     header_file_path = shader_ffi_header.display(),
     shader_fn_decl = shader_fn_decl,
-    spirv_binary = spirv_binary_hex
+    spirv_binary = spirv_binary_hex,
+    shader_code_size_fn_decl = shader_code_size_fn_decl,
+    shader_code_size = binary_spirv_code_size
 };
 
     let mut out = fs::OpenOptions::new()
