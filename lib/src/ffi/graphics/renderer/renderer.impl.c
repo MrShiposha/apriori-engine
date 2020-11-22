@@ -15,80 +15,114 @@
 #include "ffi/os/surface.h"
 #include "ffi/util/mod.h"
 
+#include "ffi/graphics/pipeline/overlay/mod.h"
+
 #define LOG_TARGET LOG_STRUCT_TARGET(Renderer)
 #define CI_GRAPHICS_IDX 0
 #define CI_PRESENT_IDX 1
 
-uint32_t rate_phy_device_suitability(VkPhysicalDeviceProperties *dev_props) {
+struct PhyDeviceDescr {
+    VkPhysicalDevice phy_device;
+    VkPhysicalDeviceProperties properties;
+    VkPhysicalDeviceFeatures features;
+};
+
+uint32_t rate_phy_device_suitability(
+    VkPhysicalDeviceProperties *dev_props,
+    VkPhysicalDeviceFeatures *dev_features
+) {
     ASSERT_NOT_NULL(dev_props);
+    ASSERT_NOT_NULL(dev_features);
 
     uint32_t score = 0;
 
-    switch(dev_props->deviceType) {
-    case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
-        score += 1000;
-        break;
-    case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
-        score += 100;
-        break;
-    case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
-        score += 10;
-        break;
-    }
+#define DEV_TYPE_CASE(dev_type, add_score) \
+    case VK_PHYSICAL_DEVICE_TYPE_##dev_type: \
+        score += add_score; \
+        trace( \
+            LOG_TARGET, \
+            LOG_GROUP(struct_op, "\"%s\" device type: " #dev_type), \
+            dev_props->deviceName \
+        ); \
+        break
 
+    switch(dev_props->deviceType) {
+        DEV_TYPE_CASE(DISCRETE_GPU, 1000);
+        DEV_TYPE_CASE(INTEGRATED_GPU, 100);
+        DEV_TYPE_CASE(VIRTUAL_GPU, 10);
+    }
+#undef DEV_TYPE_CASE
+
+#define DEV_HAS_FEATURE(feature_name, add_score) do {\
+    if (dev_features->feature_name) { \
+        trace( \
+            LOG_TARGET, \
+            LOG_GROUP(struct_op, "\"%s\" has '" #feature_name "' feature"), \
+            dev_props->deviceName \
+        ); \
+        score += add_score; \
+    } \
+} while(0)
+
+    DEV_HAS_FEATURE(samplerAnisotropy, 10);
+
+#undef DEV_HAS_FEATURE
     trace(
         LOG_TARGET,
-        LOG_GROUP(struct, "\t\"%s\" physical device suitability score: %d"),
+        LOG_GROUP(struct, "\"%s\" physical device suitability score: %d"),
         dev_props->deviceName, score
     );
 
     return score;
 }
 
-VkPhysicalDevice select_phy_device(VulkanInstance instance) {
+Result select_phy_device(VulkanInstance instance) {
+    ASSERT_NOT_NULL(instance);
+
+    Result result = { 0 };
+    struct PhyDeviceDescr *winner_descr = NULL;
+
     uint32_t score = 0;
     uint32_t current_score = 0;
     VkPhysicalDeviceProperties dev_props = { 0 };
-    VkPhysicalDevice winner_device = VK_NULL_HANDLE;
-    char winner_device_name[VK_MAX_PHYSICAL_DEVICE_NAME_SIZE] = { 0 };
+    VkPhysicalDeviceFeatures dev_features = { 0 };
 
     trace(
         LOG_TARGET,
         LOG_GROUP(struct, "selecting the most suitable physical device...")
     );
 
+    winner_descr = ALLOC(result, struct PhyDeviceDescr);
+
     for (uint32_t i = 0; i < instance->phy_device_count; ++i) {
         vkGetPhysicalDeviceProperties(instance->phy_devices[i], &dev_props);
+        vkGetPhysicalDeviceFeatures(instance->phy_devices[i], &dev_features);
 
         current_score = rate_phy_device_suitability(
-            &dev_props
+            &dev_props,
+            &dev_features
         );
 
         if (current_score > score) {
             score = current_score;
-            winner_device = instance->phy_devices[i];
-            errno_t copy_result = strcpy_s(
-                winner_device_name,
-                VK_MAX_PHYSICAL_DEVICE_NAME_SIZE,
-                dev_props.deviceName
-            );
-
-            assert(copy_result == 0 && "unable to copy physical device name");
+            winner_descr->phy_device = instance->phy_devices[i];
+            winner_descr->properties = dev_props;
+            winner_descr->features = dev_features;
         }
     }
 
     assert(
-        winner_device != VK_NULL_HANDLE
+        winner_descr->phy_device != VK_NULL_HANDLE
         && "Renderer: physical device must be selected"
     );
 
     trace(
         LOG_TARGET,
         LOG_GROUP(struct, "the most suitable physical device: \"%s\" (score: %d)"),
-        winner_device_name, score
+        winner_descr->properties.deviceName, score
     );
 
-    return winner_device;
+    FN_FORCE_EXIT(result);
 }
 
 Result phy_device_surface_formats(VkPhysicalDevice phy_device, VkSurfaceKHR surface) {
@@ -107,7 +141,7 @@ Result phy_device_surface_formats(VkPhysicalDevice phy_device, VkSurfaceKHR surf
     );
     EXPECT_SUCCESS(result);
 
-    result = NEW_DYN_ARRAY(surface_formats_count, VkSurfaceFormatKHR);
+    result = NEW_DYN_ARRAY(VkSurfaceFormatKHR, surface_formats_count);
     RESULT_UNWRAP(surface_formats, result);
 
     result.error = vkGetPhysicalDeviceSurfaceFormatsKHR(
@@ -267,16 +301,17 @@ Result check_all_device_extensions_available(
 }
 
 Result new_gpu(
-    VkPhysicalDevice phy_device,
+    struct PhyDeviceDescr *phy_dev_descr,
     struct RendererQueueFamilies *families,
     VkDeviceQueueCreateInfo *queues_cis,
     uint32_t queues_cis_count
 ) {
-    ASSERT_NOT_NULL(phy_device);
+    ASSERT_NOT_NULL(phy_dev_descr);
     ASSERT_NOT_NULL(families);
     ASSERT_NOT_NULL(queues_cis);
 
     Result result = { 0 };
+    VkPhysicalDeviceFeatures enabled_features = { 0 };
     VkDeviceCreateInfo device_ci = {
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO
     };
@@ -299,16 +334,18 @@ Result new_gpu(
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
 
-    result = check_all_device_layers_available(phy_device, layer_names, layer_names_count);
+    result = check_all_device_layers_available(phy_dev_descr->phy_device, layer_names, layer_names_count);
     EXPECT_SUCCESS(result);
 
     result = check_all_device_extensions_available(
-        phy_device,
+        phy_dev_descr->phy_device,
         extension_names,
         STATIC_ARRAY_SIZE(extension_names)
     );
     EXPECT_SUCCESS(result);
 
+    if (phy_dev_descr->features.samplerAnisotropy)
+        enabled_features.samplerAnisotropy = VK_TRUE;
 
     device_ci.enabledLayerCount = layer_names_count;
     device_ci.ppEnabledLayerNames = layer_names;
@@ -316,8 +353,9 @@ Result new_gpu(
     device_ci.ppEnabledExtensionNames = extension_names;
     device_ci.queueCreateInfoCount = queues_cis_count;
     device_ci.pQueueCreateInfos = queues_cis;
+    device_ci.pEnabledFeatures = &enabled_features;
 
-    result.error = vkCreateDevice(phy_device, &device_ci, NULL, &gpu);
+    result.error = vkCreateDevice(phy_dev_descr->phy_device, &device_ci, NULL, &gpu);
     result.object = gpu;
     EXPECT_SUCCESS(result);
 
@@ -348,7 +386,11 @@ Result new_renderer(
 
     renderer->vk_instance = vulkan_instance;
 
-    VkPhysicalDevice phy_device = select_phy_device(vulkan_instance);
+    struct PhyDeviceDescr *phy_dev_descr = NULL;
+    result = select_phy_device(vulkan_instance);
+    RESULT_UNWRAP(phy_dev_descr, result);
+
+    VkPhysicalDevice phy_device = phy_dev_descr->phy_device;
     result = new_surface(vulkan_instance->vk_handle, window_platform_handle);
     RESULT_UNWRAP(
         renderer->surface,
@@ -363,7 +405,7 @@ Result new_renderer(
 
     fill_renderer_queues_create_info(families, queues_cis, &queues_cis_count);
 
-    result = new_gpu(phy_device, families, queues_cis, queues_cis_count);
+    result = new_gpu(phy_dev_descr, families, queues_cis, queues_cis_count);
     RESULT_UNWRAP(
         renderer->gpu,
         result
@@ -402,6 +444,33 @@ Result new_renderer(
         result
     );
 
+    result = get_ovl_descriptor_pool_sizes(renderer->swapchain->image_count);
+    EXPECT_SUCCESS(result);
+
+    // TODO Combine different pool size arrays
+    DynArray descr_pool_sizes = result.object;
+
+    uint32_t max_sets_count = renderer->swapchain->image_count;
+
+    info(LOG_TARGET, LOG_GROUP(struct, "creating new renderer descriptor pool..."));
+    {
+        VkDescriptorPoolCreateInfo descr_pool_ci = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+            .maxSets = max_sets_count,
+        };
+        descr_pool_ci.poolSizeCount = descr_pool_sizes->count;
+        descr_pool_ci.pPoolSizes = descr_pool_sizes->data;
+
+        result.error = vkCreateDescriptorPool(
+            renderer->gpu,
+            &descr_pool_ci,
+            NULL,
+            &renderer->pools.descr
+        );
+        EXPECT_SUCCESS(result);
+    }
+    info(LOG_TARGET, LOG_GROUP(struct, "new renderer descriptor pool created sucessfully"));
+
     result = new_renderer_cmd_buffers(
         renderer->gpu,
         families,
@@ -438,9 +507,17 @@ void drop_renderer(Renderer renderer) {
 
     drop_renderer_cmd_pools(renderer->pools.cmd);
 
+    vkDestroyDescriptorPool(
+        renderer->gpu,
+        renderer->pools.descr,
+        NULL
+    );
+    debug(LOG_TARGET, LOG_GROUP(struct, "drop renderer descriptor pool"));
+
     drop_swapchain(renderer->swapchain);
 
     vkDestroyDevice(renderer->gpu, NULL);
+    debug(LOG_TARGET, LOG_GROUP(struct, "drop GPU object"));
 
     drop_surface(renderer->vk_instance->vk_handle, renderer->surface);
 

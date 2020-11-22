@@ -11,6 +11,7 @@
 
 struct RendererPools {
     struct RendererCmdPools *cmd;
+    VkDescriptorPool descr;
 };
 
 struct RendererBuffers {
